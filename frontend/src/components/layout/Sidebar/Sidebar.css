@@ -1,0 +1,195 @@
+.sidebar {
+  width: 242px;
+  flex: 0 0 242px;
+  padding: 30px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-soft);
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(24px);
+  box-sizing: border-box;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 10px 28px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.brand__mark {
+  width: 37px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: white;
+  font-family: Georgia, serif;
+  font-size: 25px;
+  line-height: 1;
+  background: linear-gradient(145deg, var(--berry), var(--rose));
+  box-shadow: 0 8px 24px rgba(133, 62, 103, 0.22);
+  transform: rotate(-4deg);
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand strong {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 23px;
+  line-height: 0.95;
+  letter-spacing: -0.5px;
+}
+
+.brand small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+}
+
+.sidebar__nav,
+.sidebar__playlists {
+  display: grid;
+  gap: 3px;
+}
+
+.sidebar__item {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 560;
+  text-align: left;
+  transition: 160ms ease;
+}
+
+.sidebar__item:hover {
+  color: var(--berry-deep);
+  background: var(--rose-wash);
+}
+
+.sidebar__item--active {
+  color: var(--berry-deep);
+  background: var(--rose-wash-strong);
+  box-shadow: inset 3px 0 var(--rose);
+}
+
+.sidebar__section {
+  min-height: 0;
+  margin-top: 28px;
+  overflow: hidden;
+}
+
+.sidebar__section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 9px 9px 12px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.35px;
+  text-transform: uppercase;
+}
+
+.sidebar__section-title button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.sidebar__section-title button:hover {
+  color: var(--berry-deep);
+  background: var(--rose-wash);
+}
+
+.sidebar__playlists {
+  max-height: 228px;
+  overflow: auto;
+}
+
+.sidebar__item--playlist {
+  min-height: 36px;
+  font-size: 12px;
+}
+
+.sidebar__item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    inset: auto 12px 12px;
+    z-index: 20;
+    width: auto;
+    height: 64px;
+    padding: 7px;
+    display: block;
+    border: 1px solid rgba(136, 83, 111, 0.14);
+    border-radius: 19px;
+    background: var(--surface-raised);
+    box-shadow: 0 14px 40px rgba(75, 45, 63, 0.16);
+  }
+
+  .brand,
+  .sidebar__section {
+    display: none;
+  }
+
+  .sidebar__nav {
+    height: 100%;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+  }
+
+  .sidebar__item {
+    min-width: 0;
+    min-height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 2px;
+    font-size: 9px;
+    border-radius: 13px;
+  }
+
+  .sidebar__item--active {
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar__item span {
+    display: none;
+  }
+
+  .sidebar__item::after {
+    content: attr(data-mobile-label);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

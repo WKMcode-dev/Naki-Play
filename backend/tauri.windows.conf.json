@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "externalBin": [
+      "../plugins/naki-media/binaries/yt-dlp",
+      "../plugins/naki-media/binaries/ffmpeg",
+      "../plugins/naki-media/binaries/ffprobe",
+      "../plugins/naki-media/binaries/deno"
+    ]
+  }
+}

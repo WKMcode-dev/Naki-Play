@@ -1,0 +1,23 @@
+{
+  "name": "naki-play",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "dev": "pnpm --dir frontend dev",
+    "desktop:prepare": "node scripts/prepare-desktop.mjs",
+    "dev:desktop": "pnpm desktop:prepare && tauri dev",
+    "android:init": "tauri android init && node scripts/prepare-android.mjs",
+    "android:prepare": "node scripts/prepare-android.mjs",
+    "dev:android": "pnpm android:prepare && tauri android dev",
+    "build": "pnpm --dir frontend build",
+    "build:desktop": "pnpm desktop:prepare && tauri build",
+    "build:android": "pnpm android:prepare && tauri android build --apk --split-per-abi",
+    "build:android:debug": "pnpm android:prepare && tauri android build --debug --apk --target aarch64 --ci",
+    "check:rust": "cargo check --manifest-path backend/Cargo.toml",
+    "lint": "pnpm --dir frontend lint"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

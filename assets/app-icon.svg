@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Ícone do Naki Play</title>
+  <defs>
+    <linearGradient id="background" x1="72" y1="54" x2="438" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F3B7C9"/>
+      <stop offset="0.5" stop-color="#B7628E"/>
+      <stop offset="1" stop-color="#57334F"/>
+    </linearGradient>
+    <radialGradient id="record" cx="0" cy="0" r="1" gradientTransform="translate(258 258) rotate(90) scale(174)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#44303F"/>
+      <stop offset="0.6" stop-color="#2F252C"/>
+      <stop offset="1" stop-color="#1F191D"/>
+    </radialGradient>
+    <filter id="shadow" x="64" y="72" width="384" height="390" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#402335" flood-opacity=".28"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#background)"/>
+  <circle cx="88" cy="104" r="68" fill="#FFF" fill-opacity=".08"/>
+  <circle cx="444" cy="430" r="96" fill="#FFF" fill-opacity=".06"/>
+  <g filter="url(#shadow)">
+    <circle cx="256" cy="256" r="174" fill="url(#record)"/>
+    <circle cx="256" cy="256" r="142" fill="none" stroke="#EEC7D5" stroke-opacity=".12" stroke-width="3"/>
+    <circle cx="256" cy="256" r="112" fill="none" stroke="#EEC7D5" stroke-opacity=".1" stroke-width="3"/>
+    <circle cx="256" cy="256" r="80" fill="#C67399"/>
+    <circle cx="256" cy="256" r="55" fill="#E9AFC2" fill-opacity=".4"/>
+    <circle cx="256" cy="256" r="13" fill="#FFF7F6"/>
+  </g>
+  <path d="M256 335C238 312 190 283 190 238C190 203 233 188 256 220C279 188 322 203 322 238C322 283 274 312 256 335Z" fill="#FFF7F6"/>
+  <path d="M379 110C371 100 349 87 349 66C349 50 369 43 379 58C390 43 410 50 410 66C410 87 388 100 379 110Z" fill="#FFF7F6" fill-opacity=".84"/>
+</svg>

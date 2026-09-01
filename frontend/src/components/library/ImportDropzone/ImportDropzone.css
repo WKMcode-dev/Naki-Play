@@ -1,0 +1,106 @@
+.import-dropzone {
+  position: relative;
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  margin-bottom: 25px;
+  padding: 20px 24px;
+  overflow: hidden;
+  border: 1px dashed rgba(164, 96, 132, 0.4);
+  border-radius: 17px;
+  background: linear-gradient(115deg, var(--rose-wash), var(--surface-muted));
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: 160ms ease;
+}
+
+.import-dropzone:hover,
+.import-dropzone--active {
+  border-color: var(--rose-strong);
+  background: linear-gradient(115deg, var(--rose-wash-strong), var(--surface-muted));
+  transform: translateY(-1px);
+}
+
+.import-dropzone > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.import-dropzone__icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: white;
+  background: linear-gradient(145deg, var(--rose-strong), var(--berry));
+  box-shadow: 0 8px 22px rgba(119, 61, 96, 0.18);
+}
+
+.import-dropzone__copy {
+  min-width: 0;
+}
+
+.import-dropzone__copy strong,
+.import-dropzone__copy small {
+  display: block;
+}
+
+.import-dropzone__copy strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 560;
+}
+
+.import-dropzone__copy small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.import-dropzone__button {
+  min-height: 37px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: var(--berry-deep);
+  background: var(--surface-raised);
+  box-shadow: 0 3px 12px rgba(90, 52, 77, 0.08);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.import-dropzone__button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.import-dropzone__decoration {
+  position: absolute;
+  right: -8px;
+  bottom: -10px;
+  color: rgba(125, 72, 108, 0.08);
+  transform: rotate(-12deg);
+}
+
+@media (max-width: 650px) {
+  .import-dropzone {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+
+  .import-dropzone__button {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
