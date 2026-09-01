@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## [0.1.1] - 2026-09-01
+
+### Corrigido
+
+- o aplicativo Windows agora usa o subsistema gráfico e não abre uma janela de CMD junto da interface.
+
 ## [0.1.0] - 2026-08-31
 
 ### Adicionado
@@ -17,4 +23,5 @@ Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 - yt-dlp, Python e FFmpeg empacotados no Android;
 - documentação de arquitetura, escopo e testes por plataforma.
 
+[0.1.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.1.1
 [0.1.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.1.0

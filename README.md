@@ -6,8 +6,8 @@ Um player pessoal e carinhoso para Android e Windows, feito com React, Rust, Kot
 
 ## Baixar
 
-- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.1.0/Naki-Play-0.1.0-windows-x64-setup.exe)
-- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.1.0/Naki-Play-0.1.0-android-arm64-debug.apk)
+- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.1.1/Naki-Play-0.1.1-windows-x64-setup.exe)
+- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.1.1/Naki-Play-0.1.1-android-arm64-debug.apk)
 
 Os pacotes também ficam reunidos na página da [versão mais recente](https://github.com/WKMcode-dev/Naki-Play/releases/latest), junto dos hashes SHA-256 e das instruções de instalação.
 
@@ -70,7 +70,7 @@ Para uma build separada por arquitetura:
 pnpm build:android
 ```
 
-Os APKs ficam em `backend/gen/android/app/build/outputs/apk/`. O APK ARM64 de desenvolvimento ocupa aproximadamente 156 MB. Veja [docs/ANDROID_TESTING.md](docs/ANDROID_TESTING.md).
+Os APKs ficam em `backend/gen/android/app/build/outputs/apk/`. O tamanho do APK ARM64 de desenvolvimento varia conforme a build e atualmente fica em torno de 108 MB. Veja [docs/ANDROID_TESTING.md](docs/ANDROID_TESTING.md).
 
 ## Interface no navegador
 
