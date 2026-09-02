@@ -247,7 +247,6 @@ function App() {
 
         <PlayerBar
           isPlaying={library.isPlaying}
-          queueLength={library.playbackQueueLength}
           repeatMode={library.settings.repeatMode}
           shuffleEnabled={library.settings.shuffleEnabled}
           track={library.currentTrack}

@@ -15,7 +15,6 @@ import './PlayerBar.css'
 
 interface PlayerBarProps {
   isPlaying: boolean
-  queueLength: number
   repeatMode: RepeatMode
   shuffleEnabled: boolean
   track?: MediaTrack
@@ -39,7 +38,6 @@ function formatTime(value: number) {
 
 export function PlayerBar({
   isPlaying,
-  queueLength,
   repeatMode,
   shuffleEnabled,
   track,
@@ -88,7 +86,7 @@ export function PlayerBar({
     <footer className="player-bar">
       <audio
         ref={audioRef}
-        loop={repeatMode === 'one' || (repeatMode === 'all' && queueLength <= 1)}
+        loop={repeatMode === 'one'}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
         onEnded={onTrackEnded}
@@ -127,15 +125,11 @@ export function PlayerBar({
           </button>
           <button type="button" aria-label="Próxima faixa" onClick={onNext}><SkipForward size={16} fill="currentColor" /></button>
           <button
-            className={repeatMode !== 'off' ? 'player-control--active player-control--repeat' : 'player-control--repeat'}
+            className={repeatMode === 'one' ? 'player-control--active player-control--repeat' : 'player-control--repeat'}
             type="button"
-            aria-label={repeatMode === 'off'
-              ? 'Ativar repetição da fila'
-              : repeatMode === 'all'
-                ? 'Repetir uma música'
-                : 'Desativar repetição'}
-            aria-pressed={repeatMode !== 'off'}
-            title={repeatMode === 'off' ? 'Repetição desativada' : repeatMode === 'all' ? 'Repetir fila' : 'Repetir música'}
+            aria-label={repeatMode === 'one' ? 'Desativar repetição da música' : 'Repetir música atual'}
+            aria-pressed={repeatMode === 'one'}
+            title={repeatMode === 'one' ? 'Repetindo a música atual' : 'Repetir música atual'}
             onClick={onRepeatChange}
           >
             <Repeat2 size={15} />

@@ -276,7 +276,10 @@ pub fn load_settings(connection: &Connection) -> Result<AppSettings, String> {
                     compact_mode: row.get::<_, i64>(8)? != 0,
                     autoplay: row.get::<_, i64>(9)? != 0,
                     shuffle_enabled: row.get::<_, i64>(10)? != 0,
-                    repeat_mode: row.get(11)?,
+                    repeat_mode: match row.get::<_, String>(11)?.as_str() {
+                        "one" => "one".to_string(),
+                        _ => "off".to_string(),
+                    },
                     volume: row.get(12)?,
                 })
             },

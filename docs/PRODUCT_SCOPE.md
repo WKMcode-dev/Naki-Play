@@ -4,7 +4,7 @@
 
 O Naki Play é uma biblioteca pessoal para Android e Windows. Ele recebe um link compatível, mostra os dados da mídia, permite escolher MP3 ou MP4 e salva o resultado no armazenamento privado do aplicativo para reprodução offline. Também aceita arquivos que já estejam no dispositivo.
 
-O player mantém uma fila baseada na tela atual, avança automaticamente, oferece ordem aleatória e repetição da fila ou de uma faixa. Dentro de playlists, as músicas podem ser reordenadas por arrastar, pelo teclado ou alfabeticamente, e a ordem fica salva no dispositivo.
+O player mantém uma fila baseada na tela atual, avança automaticamente, oferece ordem aleatória e repetição da música atual. Dentro de playlists, as músicas podem ser reordenadas por arrastar, pelo teclado ou alfabeticamente, e a ordem fica salva no dispositivo.
 
 A interface usa por padrão uma estética neutra inspirada no Notion, com modos claro, escuro e do sistema. A pessoa pode personalizar as cores; o aplicativo calcula automaticamente texto claro ou escuro para manter o contraste nos controles principais.
 

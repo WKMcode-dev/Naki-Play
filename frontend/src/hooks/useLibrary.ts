@@ -134,12 +134,6 @@ export function useLibrary() {
     () => tracks.find((track) => track.id === currentTrackId),
     [currentTrackId, tracks],
   )
-  const playbackQueueLength = useMemo(() => {
-    const availableIds = new Set(tracks.map((track) => track.id))
-    return uniqueIds(playbackQueue.length ? playbackQueue : tracks.map((track) => track.id))
-      .filter((trackId) => availableIds.has(trackId))
-      .length
-  }, [playbackQueue, tracks])
 
   function clearMessages() {
     setError(undefined)
@@ -217,7 +211,7 @@ export function useLibrary() {
       : direction === 1 ? -1 : order.length
     const candidateIndex = currentIndex + direction
     const reachedBoundary = candidateIndex < 0 || candidateIndex >= order.length
-    if (fromEnded && reachedBoundary && settings.repeatMode !== 'all') {
+    if (fromEnded && reachedBoundary) {
       setIsPlaying(false)
       return
     }
@@ -254,12 +248,8 @@ export function useLibrary() {
   }
 
   function cycleRepeatMode() {
-    const nextModes: Record<RepeatMode, RepeatMode> = {
-      off: 'all',
-      all: 'one',
-      one: 'off',
-    }
-    void updatePlaybackSettings({ ...settings, repeatMode: nextModes[settings.repeatMode] })
+    const repeatMode: RepeatMode = settings.repeatMode === 'one' ? 'off' : 'one'
+    void updatePlaybackSettings({ ...settings, repeatMode })
   }
 
   async function toggleLike(trackId: string) {
@@ -547,7 +537,6 @@ export function useLibrary() {
     mediaAnalysis,
     notice,
     onTrackEnded: handleTrackEnded,
-    playbackQueueLength,
     playNext: () => playAdjacent(1),
     playPrevious: () => playAdjacent(-1),
     playTrack,
