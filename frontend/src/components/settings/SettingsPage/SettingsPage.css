@@ -15,8 +15,8 @@
   gap: 8px;
   padding: 0 16px;
   border-radius: 11px;
-  color: white;
-  background: var(--berry-deep);
+  color: var(--on-primary);
+  background: var(--theme-primary);
   box-shadow: var(--shadow-soft);
   font-size: 10px;
   font-weight: 720;
@@ -49,7 +49,7 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  color: var(--rose-strong);
+  color: var(--accent-ink);
   background: var(--rose-wash);
 }
 
@@ -109,7 +109,7 @@
 }
 
 .text-field input:focus {
-  border-color: var(--rose-strong);
+  border-color: var(--theme-accent);
 }
 
 .text-field small {
@@ -140,7 +140,7 @@
 }
 
 .theme-mode--active {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--surface-raised);
   box-shadow: 0 3px 10px rgba(66, 40, 56, 0.08);
 }
@@ -166,13 +166,13 @@
 }
 
 .palette-preset--active {
-  border-color: var(--rose-strong);
-  color: var(--berry-deep);
+  border-color: var(--theme-accent);
+  color: var(--primary-ink);
 }
 
 .palette-preset > svg {
   margin-left: auto;
-  color: var(--rose-strong);
+  color: var(--accent-ink);
 }
 
 .palette-preset__colors {
@@ -286,7 +286,7 @@
 }
 
 .settings-toggle input:checked + i {
-  background: var(--rose-strong);
+  background: var(--theme-accent);
 }
 
 .settings-toggle input:checked + i::after {
@@ -309,13 +309,13 @@
 }
 
 .volume-setting small {
-  color: var(--rose-strong);
+  color: var(--accent-ink);
   font-size: 9px;
   font-weight: 700;
 }
 
 .volume-setting input {
-  accent-color: var(--rose-strong);
+  accent-color: var(--theme-accent);
 }
 
 .storage-stats {

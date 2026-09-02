@@ -46,6 +46,22 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
+function contrastTextColor(hexColor: string) {
+  const normalized = hexColor.replace('#', '')
+  const expanded = normalized.length === 3
+    ? normalized.split('').map((value) => value.repeat(2)).join('')
+    : normalized
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) return '#ffffff'
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(expanded.slice(offset, offset + 2), 16) / 255)
+  const [red, green, blue] = channels.map((value) => value <= 0.04045
+    ? value / 12.92
+    : ((value + 0.055) / 1.055) ** 2.4)
+  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+  const whiteContrast = 1.05 / (luminance + 0.05)
+  const darkContrast = (luminance + 0.05) / 0.06
+  return whiteContrast >= darkContrast ? '#ffffff' : '#191919'
+}
+
 function uniqueIds(trackIds: string[]) {
   return [...new Set(trackIds)]
 }
@@ -103,6 +119,8 @@ export function useLibrary() {
     root.style.setProperty('--theme-accent', settings.accentColor)
     root.style.setProperty('--theme-light-bg', settings.lightBackground)
     root.style.setProperty('--theme-dark-bg', settings.darkBackground)
+    root.style.setProperty('--theme-on-primary', contrastTextColor(settings.primaryColor))
+    root.style.setProperty('--theme-on-accent', contrastTextColor(settings.accentColor))
     document.title = `${settings.appTitle} Play`
 
     if (runningInTauri()) {
@@ -135,7 +153,7 @@ export function useLibrary() {
     setPlaybackQueue((current) => uniqueIds([...imported.map((track) => track.id), ...current]))
     setIsPlaying(true)
     setActiveView('downloads')
-    setNotice(`${imported.length} ${imported.length === 1 ? 'música adicionada' : 'músicas adicionadas'} à biblioteca ♡`)
+    setNotice(`${imported.length} ${imported.length === 1 ? 'música adicionada' : 'músicas adicionadas'} à biblioteca`)
   }, [])
 
   const importPaths = useCallback(async (paths: string[]) => {
@@ -323,7 +341,7 @@ export function useLibrary() {
     try {
       const analysis = await analyzeExternalMedia(url)
       setMediaAnalysis(analysis)
-      setNotice('Link analisado. Agora escolha o formato que você quer ♡')
+      setNotice('Link analisado. Agora escolha o formato que você quer.')
       return true
     } catch (reason) {
       setError(errorMessage(reason))
@@ -360,7 +378,7 @@ export function useLibrary() {
         ...current,
         stage: 'finished',
         progress: 100,
-        message: 'Download concluído e adicionado à biblioteca ♡',
+        message: 'Download concluído e adicionado à biblioteca.',
       }))
     }
   }
@@ -389,7 +407,7 @@ export function useLibrary() {
         ...current,
         stage: 'finished',
         progress: 100,
-        message: 'Prontinho! Já está na biblioteca ♡',
+        message: 'Pronto! O arquivo já está na biblioteca.',
       }))
       return true
     } catch (reason) {
@@ -449,7 +467,7 @@ export function useLibrary() {
       : playlist))
     try {
       await persistAddToPlaylist(playlistId, trackId)
-      setNotice('Música adicionada à playlist ♡')
+      setNotice('Música adicionada à playlist.')
     } catch (reason) {
       setError(errorMessage(reason))
     }
@@ -484,7 +502,7 @@ export function useLibrary() {
     }
     try {
       await persistPlaylistOrder(playlistId, trackIds)
-      setNotice('Ordem da playlist salva ♡')
+      setNotice('Ordem da playlist salva.')
     } catch (reason) {
       setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
         ? { ...playlist, trackIds: previousOrder }
@@ -498,7 +516,7 @@ export function useLibrary() {
     setIsBusy(true)
     try {
       setSettings(await persistSettings(nextSettings))
-      setNotice('Configurações salvas neste dispositivo ♡')
+      setNotice('Configurações salvas neste dispositivo.')
       return true
     } catch (reason) {
       setError(errorMessage(reason))

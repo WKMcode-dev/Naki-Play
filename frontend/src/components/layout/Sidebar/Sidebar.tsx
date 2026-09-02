@@ -4,6 +4,7 @@ import {
   Home,
   LibraryBig,
   ListMusic,
+  Music2,
   Plus,
   Settings,
   Sparkles,
@@ -38,7 +39,7 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <button className="brand" type="button" onClick={() => onNavigate('home')}>
-        <span className="brand__mark" aria-hidden="true">♡</span>
+        <span className="brand__mark" aria-hidden="true"><Music2 size={20} /></span>
         <span>
           <strong>{appTitle}</strong>
           <small>play</small>

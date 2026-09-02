@@ -1,13 +1,13 @@
 # Naki Play
 
-Um player pessoal e carinhoso para Android e Windows, feito com React, Rust, Kotlin e Tauri. O Naki Play transforma links compatíveis em MP3 ou MP4, guarda os arquivos na biblioteca privada do aplicativo e permite ouvi-los offline — sem enviar a mídia para um servidor do projeto.
+Um player pessoal para Android e Windows, feito com React, Rust, Kotlin e Tauri. O Naki Play transforma links compatíveis em MP3 ou MP4, guarda os arquivos na biblioteca privada do aplicativo e permite ouvi-los offline — sem enviar a mídia para um servidor do projeto.
 
 > Use o recurso de download somente em conteúdo próprio, em domínio público, com licença compatível ou que você tenha autorização para salvar. O Naki Play não remove DRM, não acessa contas e não contorna paywalls ou conteúdo privado.
 
 ## Baixar
 
-- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.2.0/Naki-Play-0.2.0-windows-x64-setup.exe)
-- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.2.0/Naki-Play-0.2.0-android-arm64-debug.apk)
+- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.3.0/Naki-Play-0.3.0-windows-x64-setup.exe)
+- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.3.0/Naki-Play-0.3.0-android-arm64-debug.apk)
 
 Os pacotes também ficam reunidos na página da [versão mais recente](https://github.com/WKMcode-dev/Naki-Play/releases/latest), junto dos hashes SHA-256 e das instruções de instalação.
 
@@ -24,9 +24,14 @@ Os pacotes também ficam reunidos na página da [versão mais recente](https://g
 - importação de MP3, WAV, M4A, AAC, FLAC, OGG, OPUS, MP4, WEBM e MOV;
 - reprodução contínua da fila, ordem aleatória e repetição da fila ou de uma faixa;
 - músicas gostadas, favoritas, playlists reordenáveis por arrastar ou por título e preferências de tema;
+- tema neutro inspirado no Notion, modos claro/escuro e contraste automático para cores personalizadas;
 - interface responsiva e personalizada para celular e computador.
 
 A versão no navegador serve para visualizar a interface. A biblioteca persistente e o conversor funcionam nos aplicativos instalados.
+
+### Atualizações e dados locais
+
+O Android e o Windows mantêm o mesmo identificador do aplicativo entre versões. Ao instalar uma atualização por cima da versão anterior, o banco SQLite, as músicas importadas, as playlists e as preferências permanecem na pasta privada do Naki Play. Migrações de banco são incrementais e nunca recriam a biblioteca; ainda assim, não desinstale o aplicativo antes de atualizar, pois o sistema operacional pode apagar os dados privados durante uma desinstalação.
 
 ## Preparar o projeto
 

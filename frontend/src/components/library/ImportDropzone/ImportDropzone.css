@@ -17,7 +17,7 @@
 
 .import-dropzone:hover,
 .import-dropzone--active {
-  border-color: var(--rose-strong);
+  border-color: var(--theme-accent);
   background: linear-gradient(115deg, var(--rose-wash-strong), var(--surface-muted));
   transform: translateY(-1px);
 }
@@ -36,9 +36,9 @@
   display: grid;
   place-items: center;
   border-radius: 15px;
-  color: white;
-  background: linear-gradient(145deg, var(--rose-strong), var(--berry));
-  box-shadow: 0 8px 22px rgba(119, 61, 96, 0.18);
+  color: var(--on-primary);
+  background: var(--theme-primary);
+  box-shadow: 0 8px 22px rgba(15, 15, 15, 0.16);
 }
 
 .import-dropzone__copy {
@@ -71,7 +71,7 @@
   margin-left: auto;
   padding: 0 14px;
   border-radius: 10px;
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--surface-raised);
   box-shadow: 0 3px 12px rgba(90, 52, 77, 0.08);
   font-size: 10px;

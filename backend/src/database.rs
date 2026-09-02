@@ -138,8 +138,8 @@ pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
                light_background, dark_background, reduce_motion, compact_mode,
                autoplay, volume
              ) VALUES (
-               1, 'Meu amor', 'Naki', 'system', '#60354f', '#b75f8b',
-               '#fbf9f7', '#171218', 0, 0, 1, 0.82
+               1, 'Usuário', 'Naki', 'system', '#37352f', '#2383e2',
+               '#ffffff', '#191919', 0, 0, 1, 0.82
              );",
         )
         .map_err(|error| format!("não foi possível preparar o banco local: {error}"))?;
@@ -180,7 +180,57 @@ pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
             })?;
     }
 
+    apply_appearance_defaults(&connection)?;
+
     Ok(connection)
+}
+
+fn apply_appearance_defaults(connection: &Connection) -> Result<(), String> {
+    let appearance_defaults_applied = connection
+        .query_row(
+            "SELECT value FROM schema_meta WHERE key = 'appearance-defaults-v2'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| format!("não foi possível verificar a atualização visual: {error}"))?
+        .is_some();
+    if appearance_defaults_applied {
+        return Ok(());
+    }
+
+    let transaction = connection
+        .unchecked_transaction()
+        .map_err(|error| format!("não foi possível iniciar a atualização visual: {error}"))?;
+    transaction
+        .execute(
+            "UPDATE settings SET user_name = 'Usuário' WHERE id = 1 AND user_name = 'Meu amor'",
+            [],
+        )
+        .map_err(|error| format!("não foi possível atualizar o nome padrão: {error}"))?;
+    transaction
+        .execute(
+            "UPDATE settings
+             SET primary_color = '#37352f', accent_color = '#2383e2',
+                 light_background = '#ffffff', dark_background = '#191919'
+             WHERE id = 1
+               AND lower(primary_color) = '#60354f'
+               AND lower(accent_color) = '#b75f8b'
+               AND lower(light_background) = '#fbf9f7'
+               AND lower(dark_background) = '#171218'",
+            [],
+        )
+        .map_err(|error| format!("não foi possível atualizar a paleta padrão: {error}"))?;
+    transaction
+        .execute(
+            "INSERT INTO schema_meta (key, value) VALUES ('appearance-defaults-v2', 'applied')",
+            [],
+        )
+        .map_err(|error| format!("não foi possível registrar a atualização visual: {error}"))?;
+    transaction
+        .commit()
+        .map_err(|error| format!("não foi possível concluir a atualização visual: {error}"))?;
+    Ok(())
 }
 
 fn ensure_settings_column(
@@ -336,4 +386,120 @@ pub fn insert_track(connection: &Connection, track: &TrackRecord) -> Result<(), 
         )
         .map_err(|error| format!("não foi possível registrar a música: {error}"))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::apply_appearance_defaults;
+    use rusqlite::Connection;
+
+    fn migration_database(colors: (&str, &str, &str, &str)) -> Connection {
+        let connection = Connection::open_in_memory().expect("banco em memória");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                 CREATE TABLE settings (
+                   id INTEGER PRIMARY KEY,
+                   user_name TEXT NOT NULL,
+                   primary_color TEXT NOT NULL,
+                   accent_color TEXT NOT NULL,
+                   light_background TEXT NOT NULL,
+                   dark_background TEXT NOT NULL
+                 );
+                 CREATE TABLE tracks (id TEXT PRIMARY KEY, title TEXT NOT NULL);
+                 CREATE TABLE playlists (id TEXT PRIMARY KEY, name TEXT NOT NULL);
+                 CREATE TABLE playlist_tracks (
+                   playlist_id TEXT NOT NULL,
+                   track_id TEXT NOT NULL,
+                   position INTEGER NOT NULL
+                 );
+                 INSERT INTO tracks VALUES ('track-1', 'Música salva');
+                 INSERT INTO playlists VALUES ('playlist-1', 'Minha playlist');
+                 INSERT INTO playlist_tracks VALUES ('playlist-1', 'track-1', 0);",
+            )
+            .expect("estrutura de teste");
+        connection
+            .execute(
+                "INSERT INTO settings VALUES (1, 'Meu amor', ?1, ?2, ?3, ?4)",
+                colors,
+            )
+            .expect("configuração de teste");
+        connection
+    }
+
+    #[test]
+    fn updates_only_the_legacy_palette_and_preserves_the_library() {
+        let connection = migration_database(("#60354f", "#b75f8b", "#fbf9f7", "#171218"));
+        apply_appearance_defaults(&connection).expect("migração visual");
+
+        let settings = connection
+            .query_row(
+                "SELECT user_name, primary_color, accent_color, light_background, dark_background
+                 FROM settings WHERE id = 1",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                },
+            )
+            .expect("configurações migradas");
+        assert_eq!(
+            settings,
+            (
+                "Usuário".into(),
+                "#37352f".into(),
+                "#2383e2".into(),
+                "#ffffff".into(),
+                "#191919".into()
+            )
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM tracks", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM playlists", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row("SELECT COUNT(*) FROM playlist_tracks", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+    }
+
+    #[test]
+    fn keeps_a_custom_palette_during_the_visual_update() {
+        let connection = migration_database(("#112233", "#abcdef", "#fafafa", "#101010"));
+        apply_appearance_defaults(&connection).expect("migração visual");
+        let colors = connection
+            .query_row(
+                "SELECT primary_color, accent_color, light_background, dark_background FROM settings WHERE id = 1",
+                [],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?, row.get::<_, String>(3)?)),
+            )
+            .expect("paleta personalizada");
+        assert_eq!(
+            colors,
+            (
+                "#112233".into(),
+                "#abcdef".into(),
+                "#fafafa".into(),
+                "#101010".into()
+            )
+        );
+    }
 }

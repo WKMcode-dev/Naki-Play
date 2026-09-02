@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## [0.3.0] - 2026-09-01
+
+### Adicionado
+
+- contraste automático de texto para cores principais e de destaque personalizadas;
+- paletas neutras Notion, Oceano, Floresta e Âmbar;
+- testes de migração que garantem a preservação de músicas e playlists.
+
+### Alterado
+
+- o visual padrão agora é neutro e inspirado no Notion;
+- textos, ilustrações, ícones e mensagens deixam de usar o tema romântico;
+- instalações com a antiga paleta padrão recebem o novo tema sem substituir personalizações próprias.
+
 ## [0.2.0] - 2026-09-01
 
 ### Adicionado
@@ -37,6 +51,7 @@ Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 - yt-dlp, Python e FFmpeg empacotados no Android;
 - documentação de arquitetura, escopo e testes por plataforma.
 
+[0.3.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.0
 [0.2.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.2.0
 [0.1.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.1.1
 [0.1.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.1.0

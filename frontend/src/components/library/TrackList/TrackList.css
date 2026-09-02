@@ -43,7 +43,7 @@
 }
 
 .track-list__sorting button:hover {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--rose-wash);
 }
 
@@ -124,7 +124,7 @@
   margin-top: 3px;
   border-top: 1px solid var(--border-soft);
   border-radius: 0 0 8px 8px;
-  color: var(--rose-strong);
+  color: var(--accent-ink);
 }
 
 .track-list__header {
@@ -182,7 +182,7 @@
 
 .track-row__drag:hover,
 .track-row__drag:focus-visible {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--surface-raised);
 }
 
@@ -204,8 +204,8 @@
   left: 10px;
   height: 3px;
   border-radius: 4px;
-  background: var(--rose-strong);
-  box-shadow: 0 0 0 3px rgba(183, 95, 139, 0.12);
+  background: var(--theme-accent);
+  box-shadow: 0 0 0 3px var(--rose-wash);
 }
 
 .track-row--drop-before::before {
@@ -281,7 +281,7 @@
 }
 
 .track-row--current .track-row__identity strong {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
 }
 
 .track-row__identity small {
@@ -314,12 +314,12 @@
 }
 
 .track-row__actions button:hover {
-  color: var(--berry);
+  color: var(--primary-ink);
   background: var(--surface-raised);
 }
 
 .track-row__actions .is-marked {
-  color: var(--rose-strong);
+  color: var(--accent-ink);
 }
 
 .track-list__empty {
@@ -330,7 +330,7 @@
   gap: 10px;
   border: 1px dashed var(--border);
   border-radius: 17px;
-  color: var(--rose);
+  color: var(--accent-ink);
   font-family: var(--font-display);
   font-size: 33px;
 }

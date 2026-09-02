@@ -112,7 +112,7 @@ function App() {
   const details = pageDetails()
 
   if (!library.isReady) {
-    return <div className="app-loading"><span>♡</span><strong>Preparando sua biblioteca…</strong></div>
+    return <div className="app-loading"><span>♪</span><strong>Preparando sua biblioteca…</strong></div>
   }
 
   return (

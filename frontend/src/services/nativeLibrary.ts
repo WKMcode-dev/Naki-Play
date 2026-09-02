@@ -10,24 +10,24 @@ import type {
 } from '../types/library'
 
 const coverGradients = [
-  'linear-gradient(145deg, #7c3a75 0%, #d2699e 55%, #f7c6cf 100%)',
-  'linear-gradient(145deg, #f2afc1 0%, #ca739f 48%, #65406f 100%)',
-  'linear-gradient(145deg, #f7e9df 0%, #efb6bd 52%, #b66f8c 100%)',
-  'linear-gradient(145deg, #392b4b 0%, #76527c 48%, #d49ab1 100%)',
-  'linear-gradient(145deg, #f4c8d4 0%, #ba6b94 52%, #5d345d 100%)',
-  'linear-gradient(145deg, #eaddeb 0%, #a975a9 48%, #4e365d 100%)',
-  'linear-gradient(145deg, #fde5dc 0%, #e89aaa 52%, #944e76 100%)',
-  'linear-gradient(145deg, #6e486d 0%, #9e7199 45%, #e7b4c5 100%)',
+  'linear-gradient(145deg, #2f3437 0%, #59636b 55%, #9aa5ad 100%)',
+  'linear-gradient(145deg, #1f6f8b 0%, #4d9db3 48%, #b9dbe3 100%)',
+  'linear-gradient(145deg, #356859 0%, #6f9e82 52%, #c8d9cc 100%)',
+  'linear-gradient(145deg, #5b4b8a 0%, #8a79b8 48%, #d5cfea 100%)',
+  'linear-gradient(145deg, #8a5a2b 0%, #bd8954 52%, #ead6bd 100%)',
+  'linear-gradient(145deg, #455a64 0%, #78909c 48%, #cfd8dc 100%)',
+  'linear-gradient(145deg, #7a3e48 0%, #ae6974 52%, #e3c4c9 100%)',
+  'linear-gradient(145deg, #37474f 0%, #607d8b 45%, #b0bec5 100%)',
 ]
 
 export const defaultSettings: AppSettings = {
-  userName: 'Meu amor',
+  userName: 'Usuário',
   appTitle: 'Naki',
   themeMode: 'system',
-  primaryColor: '#60354f',
-  accentColor: '#b75f8b',
-  lightBackground: '#fbf9f7',
-  darkBackground: '#171218',
+  primaryColor: '#37352f',
+  accentColor: '#2383e2',
+  lightBackground: '#ffffff',
+  darkBackground: '#191919',
   reduceMotion: false,
   compactMode: false,
   autoplay: true,
@@ -72,7 +72,22 @@ function browserSnapshot(): AppSnapshot {
   let settings = defaultSettings
   if (storedSettings) {
     try {
-      settings = { ...defaultSettings, ...JSON.parse(storedSettings) as AppSettings }
+      const stored = JSON.parse(storedSettings) as AppSettings
+      const usesLegacyPalette = stored.primaryColor?.toLowerCase() === '#60354f'
+        && stored.accentColor?.toLowerCase() === '#b75f8b'
+        && stored.lightBackground?.toLowerCase() === '#fbf9f7'
+        && stored.darkBackground?.toLowerCase() === '#171218'
+      settings = {
+        ...defaultSettings,
+        ...stored,
+        ...(usesLegacyPalette ? {
+          primaryColor: defaultSettings.primaryColor,
+          accentColor: defaultSettings.accentColor,
+          lightBackground: defaultSettings.lightBackground,
+          darkBackground: defaultSettings.darkBackground,
+        } : {}),
+        ...(stored.userName === 'Meu amor' ? { userName: defaultSettings.userName } : {}),
+      }
     } catch {
       window.localStorage.removeItem('naki-play:settings')
     }

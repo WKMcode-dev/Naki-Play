@@ -18,7 +18,7 @@ export function ImportDropzone({ isBusy, isNative, onImport, onPick }: ImportDro
     const count = onImport(files)
     setMessage(
       count > 0
-        ? `${count} ${count === 1 ? 'arquivo adicionado' : 'arquivos adicionados'} nesta sessão ♡`
+        ? `${count} ${count === 1 ? 'arquivo adicionado' : 'arquivos adicionados'} nesta sessão`
         : 'Não encontrei um arquivo de áudio ou vídeo compatível.',
     )
   }

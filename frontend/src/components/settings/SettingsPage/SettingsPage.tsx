@@ -22,32 +22,32 @@ interface SettingsPageProps {
 
 const presets = [
   {
-    name: 'Romance',
-    primaryColor: '#60354f',
-    accentColor: '#b75f8b',
-    lightBackground: '#fbf9f7',
-    darkBackground: '#171218',
-  },
-  {
-    name: 'Lavanda',
-    primaryColor: '#57436f',
-    accentColor: '#9b79bb',
-    lightBackground: '#faf8fc',
-    darkBackground: '#16131c',
-  },
-  {
-    name: 'Cereja',
-    primaryColor: '#713343',
-    accentColor: '#c85e76',
-    lightBackground: '#fff9f8',
-    darkBackground: '#1b1215',
-  },
-  {
     name: 'Notion',
     primaryColor: '#37352f',
-    accentColor: '#a27763',
+    accentColor: '#2383e2',
     lightBackground: '#ffffff',
     darkBackground: '#191919',
+  },
+  {
+    name: 'Oceano',
+    primaryColor: '#164e63',
+    accentColor: '#0891b2',
+    lightBackground: '#f8fafc',
+    darkBackground: '#111827',
+  },
+  {
+    name: 'Floresta',
+    primaryColor: '#365314',
+    accentColor: '#65a30d',
+    lightBackground: '#fafdf7',
+    darkBackground: '#172012',
+  },
+  {
+    name: 'Âmbar',
+    primaryColor: '#78350f',
+    accentColor: '#d97706',
+    lightBackground: '#fffbeb',
+    darkBackground: '#1c1917',
   },
 ]
 
@@ -115,7 +115,7 @@ export function SettingsPage({
       <div className="page-heading settings-page__heading">
         <div>
           <h1>Configurações</h1>
-          <p>Deixe este cantinho exatamente com a personalidade dela.</p>
+          <p>Personalize a aparência e o comportamento do aplicativo.</p>
         </div>
         <button className="settings-save" type="button" disabled={isBusy} onClick={() => void save()}>
           {saved ? <Check size={16} /> : <Save size={16} />}

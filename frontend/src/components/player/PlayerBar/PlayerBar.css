@@ -76,7 +76,7 @@
 }
 
 .player-like--active {
-  color: var(--rose-strong);
+  color: var(--accent-ink);
 }
 
 .player-center {
@@ -96,11 +96,11 @@
 }
 
 .player-controls button:hover {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
 }
 
 .player-controls .player-control--active {
-  color: var(--rose-strong);
+  color: var(--accent-ink);
   background: var(--rose-wash);
 }
 
@@ -117,8 +117,8 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: white;
-  background: var(--rose-strong);
+  color: var(--on-accent);
+  background: var(--theme-accent);
   font-size: 7px;
   line-height: 1;
 }
@@ -126,9 +126,9 @@
 .player-controls .player-controls__main {
   width: 35px;
   height: 35px;
-  color: white;
-  background: var(--berry-deep);
-  box-shadow: 0 5px 14px rgba(91, 46, 74, 0.2);
+  color: var(--on-primary);
+  background: var(--theme-primary);
+  box-shadow: 0 5px 14px rgba(15, 15, 15, 0.18);
 }
 
 .player-progress {
@@ -151,7 +151,7 @@
   margin: 0;
   appearance: none;
   border-radius: 10px;
-  background: linear-gradient(to right, var(--rose-strong) var(--progress), #e7dee2 var(--progress));
+  background: linear-gradient(to right, var(--theme-accent) var(--progress), var(--border) var(--progress));
   cursor: pointer;
 }
 
@@ -160,7 +160,7 @@
   height: 8px;
   appearance: none;
   border-radius: 50%;
-  background: var(--berry);
+  background: var(--theme-primary);
   opacity: 0;
 }
 
@@ -184,7 +184,7 @@
 .volume-input {
   width: 76px;
   height: 3px;
-  accent-color: var(--rose-strong);
+  accent-color: var(--theme-accent);
   cursor: pointer;
 }
 

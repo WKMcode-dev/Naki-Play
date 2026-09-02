@@ -118,7 +118,7 @@ export function TrackList({
   }
 
   if (tracks.length === 0) {
-    return <div className="track-list__empty">♡<span>{emptyMessage}</span></div>
+    return <div className="track-list__empty">♪<span>{emptyMessage}</span></div>
   }
 
   return (

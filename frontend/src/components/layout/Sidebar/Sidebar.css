@@ -25,13 +25,11 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  color: white;
-  font-family: Georgia, serif;
-  font-size: 25px;
+  color: var(--on-primary);
+  font-size: 20px;
   line-height: 1;
-  background: linear-gradient(145deg, var(--berry), var(--rose));
-  box-shadow: 0 8px 24px rgba(133, 62, 103, 0.22);
-  transform: rotate(-4deg);
+  background: var(--theme-primary);
+  box-shadow: 0 8px 24px rgba(15, 15, 15, 0.16);
 }
 
 .brand strong,
@@ -80,14 +78,14 @@
 }
 
 .sidebar__item:hover {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--rose-wash);
 }
 
 .sidebar__item--active {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--rose-wash-strong);
-  box-shadow: inset 3px 0 var(--rose);
+  box-shadow: inset 3px 0 var(--theme-accent);
 }
 
 .sidebar__section {
@@ -118,7 +116,7 @@
 }
 
 .sidebar__section-title button:hover {
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--rose-wash);
 }
 
@@ -147,10 +145,10 @@
     height: 64px;
     padding: 7px;
     display: block;
-    border: 1px solid rgba(136, 83, 111, 0.14);
+    border: 1px solid var(--border-soft);
     border-radius: 19px;
     background: var(--surface-raised);
-    box-shadow: 0 14px 40px rgba(75, 45, 63, 0.16);
+    box-shadow: 0 14px 40px rgba(15, 15, 15, 0.16);
   }
 
   .brand,

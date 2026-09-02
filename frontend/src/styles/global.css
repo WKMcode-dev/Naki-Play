@@ -26,9 +26,7 @@ body {
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 82% 4%, rgba(229, 205, 224, 0.34), transparent 30%),
-    var(--paper);
+  background: var(--paper);
 }
 
 button,
@@ -46,7 +44,7 @@ button {
 button:focus-visible,
 input:focus-visible,
 label:has(input:focus-visible) {
-  outline: 2px solid rgba(150, 73, 117, 0.65);
+  outline: 2px solid color-mix(in srgb, var(--theme-accent) 72%, var(--ink));
   outline-offset: 2px;
 }
 
@@ -101,7 +99,7 @@ label:has(input:focus-visible) {
   place-items: center;
   align-content: center;
   gap: 12px;
-  color: var(--rose-strong);
+  color: var(--accent-ink);
   background: var(--paper);
 }
 
@@ -124,9 +122,9 @@ label:has(input:focus-visible) {
   padding: 10px 14px;
   border: 1px solid color-mix(in srgb, var(--rose-strong) 24%, transparent);
   border-radius: 11px;
-  color: var(--berry-deep);
+  color: var(--primary-ink);
   background: var(--surface-raised);
-  box-shadow: 0 12px 32px rgba(61, 35, 52, 0.16);
+  box-shadow: 0 12px 32px rgba(15, 15, 15, 0.12);
   font-size: 10px;
   transform: translateX(-50%);
 }
@@ -184,7 +182,7 @@ label:has(input:focus-visible) {
 }
 
 .content-section__heading button {
-  color: var(--berry);
+  color: var(--primary-ink);
   font-size: 10px;
   font-weight: 720;
 }
@@ -192,10 +190,10 @@ label:has(input:focus-visible) {
 .source-note {
   margin: 24px 0 0;
   padding: 12px 15px;
-  border-left: 3px solid rgba(182, 95, 139, 0.55);
+  border-left: 3px solid var(--theme-accent);
   border-radius: 4px 10px 10px 4px;
   color: var(--muted-dark);
-  background: rgba(245, 235, 240, 0.62);
+  background: var(--surface-muted);
   font-size: 10px;
   line-height: 1.55;
 }

@@ -20,8 +20,8 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  color: white;
-  background: linear-gradient(145deg, var(--berry), var(--rose-strong));
+  color: var(--on-primary);
+  background: var(--theme-primary);
 }
 
 .direct-download h2 {
@@ -59,7 +59,7 @@
 }
 
 .direct-download__form input:focus {
-  border-color: var(--rose-strong);
+  border-color: var(--theme-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--rose-strong) 13%, transparent);
 }
 
@@ -71,8 +71,8 @@
   gap: 8px;
   padding: 0 17px;
   border-radius: 11px;
-  color: white;
-  background: var(--berry-deep);
+  color: var(--on-primary);
+  background: var(--theme-primary);
   font-size: 10px;
   font-weight: 720;
 }

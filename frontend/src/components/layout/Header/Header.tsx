@@ -27,7 +27,7 @@ export function Header({ isBusy, query, userName, onImport, onQueryChange }: Hea
         <span>{isBusy ? 'Aguarde…' : 'Adicionar música'}</span>
       </button>
       <div className="profile-dot" aria-label={`Perfil local de ${userName}`} title={userName}>
-        {userName.trim().charAt(0).toLocaleUpperCase('pt-BR') || '♡'}
+        {userName.trim().charAt(0).toLocaleUpperCase('pt-BR') || 'N'}
       </div>
     </header>
   )
