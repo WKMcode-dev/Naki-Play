@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## [0.2.0] - 2026-09-01
+
+### Adicionado
+
+- reprodução automática da próxima música da fila;
+- ordem aleatória persistente e repetição da fila ou de uma única faixa;
+- reordenação de músicas da playlist por arrastar, pelo teclado ou em ordem alfabética;
+- controles completos do player no layout para celular.
+
+### Alterado
+
+- a reprodução contínua passa a vir ativada e é migrada para instalações existentes;
+- a fila respeita a ordem da tela e a ordem personalizada de cada playlist.
+
 ## [0.1.1] - 2026-09-01
 
 ### Corrigido
@@ -23,5 +37,6 @@ Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 - yt-dlp, Python e FFmpeg empacotados no Android;
 - documentação de arquitetura, escopo e testes por plataforma.
 
+[0.2.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.2.0
 [0.1.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.1.1
 [0.1.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.1.0

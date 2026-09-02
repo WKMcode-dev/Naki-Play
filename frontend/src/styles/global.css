@@ -207,6 +207,6 @@ label:has(input:focus-visible) {
   }
 
   .app__content {
-    padding: 22px 18px 174px;
+    padding: 22px 18px 224px;
   }
 }

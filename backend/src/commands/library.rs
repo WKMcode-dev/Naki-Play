@@ -3,6 +3,7 @@ use crate::database::{
 };
 use serde::Deserialize;
 use std::{
+    collections::HashSet,
     fs,
     io::{self, Write},
     path::Path,
@@ -380,7 +381,90 @@ pub fn remove_track_from_playlist(
     Ok(())
 }
 
+fn playlist_order_is_valid(existing: &[String], requested: &[String]) -> bool {
+    if existing.len() != requested.len() {
+        return false;
+    }
+    let requested_ids = requested.iter().map(String::as_str).collect::<HashSet<_>>();
+    requested_ids.len() == requested.len()
+        && existing
+            .iter()
+            .all(|track_id| requested_ids.contains(track_id.as_str()))
+}
+
+#[tauri::command]
+pub fn reorder_playlist_tracks(
+    app: tauri::AppHandle,
+    playlist_id: String,
+    track_ids: Vec<String>,
+) -> Result<(), String> {
+    let mut connection = open_database(&app)?;
+    let existing = {
+        let mut statement = connection
+            .prepare(
+                "SELECT track_id FROM playlist_tracks
+                 WHERE playlist_id = ?1 ORDER BY position ASC",
+            )
+            .map_err(|error| format!("não foi possível consultar a playlist: {error}"))?;
+        let rows = statement
+            .query_map([&playlist_id], |row| row.get::<_, String>(0))
+            .map_err(|error| format!("não foi possível ler a playlist: {error}"))?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("não foi possível montar a playlist: {error}"))?
+    };
+
+    if !playlist_order_is_valid(&existing, &track_ids) {
+        return Err("a nova ordem precisa conter exatamente as músicas da playlist".to_string());
+    }
+
+    let transaction = connection
+        .transaction()
+        .map_err(|error| format!("não foi possível iniciar a reordenação: {error}"))?;
+    for (position, track_id) in track_ids.iter().enumerate() {
+        transaction
+            .execute(
+                "UPDATE playlist_tracks SET position = ?1
+                 WHERE playlist_id = ?2 AND track_id = ?3",
+                rusqlite::params![position as i64, playlist_id, track_id],
+            )
+            .map_err(|error| format!("não foi possível reordenar a playlist: {error}"))?;
+    }
+    transaction
+        .commit()
+        .map_err(|error| format!("não foi possível salvar a nova ordem: {error}"))?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn supported_media_extensions() -> Vec<&'static str> {
     SUPPORTED_EXTENSIONS.to_vec()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::playlist_order_is_valid;
+
+    fn ids(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| (*value).to_string()).collect()
+    }
+
+    #[test]
+    fn accepts_the_same_playlist_in_another_order() {
+        assert!(playlist_order_is_valid(
+            &ids(&["a", "b", "c"]),
+            &ids(&["c", "a", "b"]),
+        ));
+    }
+
+    #[test]
+    fn rejects_missing_or_duplicated_tracks() {
+        assert!(!playlist_order_is_valid(
+            &ids(&["a", "b", "c"]),
+            &ids(&["a", "b"]),
+        ));
+        assert!(!playlist_order_is_valid(
+            &ids(&["a", "b", "c"]),
+            &ids(&["a", "a", "c"]),
+        ));
+    }
 }

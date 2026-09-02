@@ -10,16 +10,21 @@ import {
   SkipForward,
   Volume2,
 } from 'lucide-react'
-import type { MediaTrack } from '../../../types/library'
+import type { MediaTrack, RepeatMode } from '../../../types/library'
 import './PlayerBar.css'
 
 interface PlayerBarProps {
-  autoplay: boolean
   isPlaying: boolean
+  queueLength: number
+  repeatMode: RepeatMode
+  shuffleEnabled: boolean
   track?: MediaTrack
   volume: number
   onNext: () => void
   onPrevious: () => void
+  onRepeatChange: () => void
+  onShuffleChange: () => void
+  onTrackEnded: () => void
   onToggle: () => void
   onToggleLike: (trackId: string) => void
   onVolumeChange: (volume: number) => void
@@ -33,12 +38,17 @@ function formatTime(value: number) {
 }
 
 export function PlayerBar({
-  autoplay,
   isPlaying,
+  queueLength,
+  repeatMode,
+  shuffleEnabled,
   track,
   volume,
   onNext,
   onPrevious,
+  onRepeatChange,
+  onShuffleChange,
+  onTrackEnded,
   onToggle,
   onToggleLike,
   onVolumeChange,
@@ -78,9 +88,10 @@ export function PlayerBar({
     <footer className="player-bar">
       <audio
         ref={audioRef}
+        loop={repeatMode === 'one' || (repeatMode === 'all' && queueLength <= 1)}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-        onEnded={autoplay ? onNext : onToggle}
+        onEnded={onTrackEnded}
       />
       <div className="player-track">
         <span className="player-track__cover" style={{ background: track.cover }}>{track.title.charAt(0)}</span>
@@ -100,13 +111,36 @@ export function PlayerBar({
 
       <div className="player-center">
         <div className="player-controls">
-          <button type="button" aria-label="Embaralhar"><Shuffle size={14} /></button>
+          <button
+            className={shuffleEnabled ? 'player-control--active' : ''}
+            type="button"
+            aria-label={shuffleEnabled ? 'Desativar ordem aleatória' : 'Ativar ordem aleatória'}
+            aria-pressed={shuffleEnabled}
+            title={shuffleEnabled ? 'Aleatório ativado' : 'Aleatório desativado'}
+            onClick={onShuffleChange}
+          >
+            <Shuffle size={14} />
+          </button>
           <button type="button" aria-label="Faixa anterior" onClick={onPrevious}><SkipBack size={16} fill="currentColor" /></button>
           <button className="player-controls__main" type="button" aria-label={isPlaying ? 'Pausar' : 'Tocar'} onClick={onToggle}>
             {isPlaying ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}
           </button>
           <button type="button" aria-label="Próxima faixa" onClick={onNext}><SkipForward size={16} fill="currentColor" /></button>
-          <button type="button" aria-label="Repetir"><Repeat2 size={15} /></button>
+          <button
+            className={repeatMode !== 'off' ? 'player-control--active player-control--repeat' : 'player-control--repeat'}
+            type="button"
+            aria-label={repeatMode === 'off'
+              ? 'Ativar repetição da fila'
+              : repeatMode === 'all'
+                ? 'Repetir uma música'
+                : 'Desativar repetição'}
+            aria-pressed={repeatMode !== 'off'}
+            title={repeatMode === 'off' ? 'Repetição desativada' : repeatMode === 'all' ? 'Repetir fila' : 'Repetir música'}
+            onClick={onRepeatChange}
+          >
+            <Repeat2 size={15} />
+            {repeatMode === 'one' && <small>1</small>}
+          </button>
         </div>
         <div className="player-progress">
           <span>{formatTime(currentTime)}</span>

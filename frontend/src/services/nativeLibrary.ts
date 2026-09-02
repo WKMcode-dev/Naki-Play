@@ -30,7 +30,9 @@ export const defaultSettings: AppSettings = {
   darkBackground: '#171218',
   reduceMotion: false,
   compactMode: false,
-  autoplay: false,
+  autoplay: true,
+  shuffleEnabled: false,
+  repeatMode: 'off',
   volume: 0.82,
 }
 
@@ -213,4 +215,8 @@ export async function persistAddToPlaylist(playlistId: string, trackId: string) 
 
 export async function persistRemoveFromPlaylist(playlistId: string, trackId: string) {
   if (runningInTauri()) await invoke('remove_track_from_playlist', { playlistId, trackId })
+}
+
+export async function persistPlaylistOrder(playlistId: string, trackIds: string[]) {
+  if (runningInTauri()) await invoke('reorder_playlist_tracks', { playlistId, trackIds })
 }

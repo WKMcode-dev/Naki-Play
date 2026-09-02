@@ -2,6 +2,56 @@
   width: 100%;
 }
 
+.track-list__sorting {
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  padding: 7px 10px 7px 13px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.34);
+  font-size: 9px;
+}
+
+.track-list__sorting > span,
+.track-list__sorting > div,
+.track-list__sorting button {
+  display: flex;
+  align-items: center;
+}
+
+.track-list__sorting > span {
+  gap: 7px;
+}
+
+.track-list__sorting > div {
+  gap: 5px;
+}
+
+.track-list__sorting button {
+  min-height: 29px;
+  gap: 5px;
+  padding: 0 9px;
+  border-radius: 8px;
+  color: var(--muted-dark);
+  background: var(--surface-raised);
+  font-size: 8px;
+}
+
+.track-list__sorting button:hover {
+  color: var(--berry-deep);
+  background: var(--rose-wash);
+}
+
+.track-list__sorting button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .track-list__header,
 .track-row {
   position: relative;
@@ -100,12 +150,70 @@
   background: var(--rose-wash);
 }
 
+.track-row__lead,
 .track-row__main {
   min-width: 0;
   display: flex;
   align-items: center;
+}
+
+.track-row__lead {
+  gap: 5px;
+}
+
+.track-row__main {
+  flex: 1;
   gap: 13px;
   text-align: left;
+}
+
+.track-row__drag {
+  width: 24px;
+  height: 38px;
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.track-row__drag:hover,
+.track-row__drag:focus-visible {
+  color: var(--berry-deep);
+  background: var(--surface-raised);
+}
+
+.track-row__drag:active {
+  cursor: grabbing;
+}
+
+.track-row--dragging {
+  opacity: 0.48;
+  background: var(--rose-wash);
+}
+
+.track-row--drop-before::before,
+.track-row--drop-after::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  right: 10px;
+  left: 10px;
+  height: 3px;
+  border-radius: 4px;
+  background: var(--rose-strong);
+  box-shadow: 0 0 0 3px rgba(183, 95, 139, 0.12);
+}
+
+.track-row--drop-before::before {
+  top: -2px;
+}
+
+.track-row--drop-after::after {
+  bottom: -2px;
 }
 
 .track-cover {
@@ -234,6 +342,20 @@
 }
 
 @media (max-width: 760px) {
+  .track-list__sorting {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .track-list__sorting > div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .track-list__sorting button {
+    justify-content: center;
+  }
+
   .track-list__header {
     display: none;
   }
@@ -252,5 +374,9 @@
 
   .track-row__actions button:nth-child(2) {
     display: none;
+  }
+
+  .track-row__lead {
+    gap: 2px;
   }
 }

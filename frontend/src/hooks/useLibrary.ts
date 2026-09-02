@@ -12,6 +12,7 @@ import {
   listenForNativeDrops,
   persistAddToPlaylist,
   persistPlaylist,
+  persistPlaylistOrder,
   persistRemoveFromPlaylist,
   persistSettings,
   persistTrackFlag,
@@ -25,6 +26,7 @@ import type {
   MediaTrack,
   NativeDownloadEvent,
   Playlist,
+  RepeatMode,
 } from '../types/library'
 
 const supportedExtensions = new Set([
@@ -44,12 +46,28 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
+function uniqueIds(trackIds: string[]) {
+  return [...new Set(trackIds)]
+}
+
+function shuffledFromCurrent(trackIds: string[], currentTrackId?: string) {
+  const remaining = trackIds.filter((trackId) => trackId !== currentTrackId)
+  for (let index = remaining.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1))
+    ;[remaining[index], remaining[target]] = [remaining[target], remaining[index]]
+  }
+  return currentTrackId && trackIds.includes(currentTrackId)
+    ? [currentTrackId, ...remaining]
+    : remaining
+}
+
 export function useLibrary() {
   const [tracks, setTracks] = useState<MediaTrack[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [settings, setSettings] = useState<AppSettings>(defaultSettings)
   const [activeView, setActiveView] = useState<LibraryView>('home')
   const [currentTrackId, setCurrentTrackId] = useState<string>()
+  const [playbackQueue, setPlaybackQueue] = useState<string[]>([])
   const [isPlaying, setIsPlaying] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
@@ -61,6 +79,7 @@ export function useLibrary() {
     progress: 0,
   })
   const cancelledJobId = useRef<string | undefined>(undefined)
+  const shuffledQueue = useRef<string[]>([])
 
   useEffect(() => {
     void bootstrapLibrary()
@@ -69,6 +88,7 @@ export function useLibrary() {
         setPlaylists(snapshot.playlists)
         setSettings(snapshot.settings)
         setCurrentTrackId(snapshot.tracks[0]?.id)
+        setPlaybackQueue(snapshot.tracks.map((track) => track.id))
       })
       .catch((reason) => setError(errorMessage(reason)))
       .finally(() => setIsReady(true))
@@ -96,6 +116,12 @@ export function useLibrary() {
     () => tracks.find((track) => track.id === currentTrackId),
     [currentTrackId, tracks],
   )
+  const playbackQueueLength = useMemo(() => {
+    const availableIds = new Set(tracks.map((track) => track.id))
+    return uniqueIds(playbackQueue.length ? playbackQueue : tracks.map((track) => track.id))
+      .filter((trackId) => availableIds.has(trackId))
+      .length
+  }, [playbackQueue, tracks])
 
   function clearMessages() {
     setError(undefined)
@@ -106,6 +132,7 @@ export function useLibrary() {
     if (imported.length === 0) return
     setTracks((current) => [...imported, ...current])
     setCurrentTrackId(imported[0].id)
+    setPlaybackQueue((current) => uniqueIds([...imported.map((track) => track.id), ...current]))
     setIsPlaying(true)
     setActiveView('downloads')
     setNotice(`${imported.length} ${imported.length === 1 ? 'música adicionada' : 'músicas adicionadas'} à biblioteca ♡`)
@@ -131,7 +158,14 @@ export function useLibrary() {
     return () => stopListening?.()
   }, [importPaths])
 
-  function playTrack(trackId: string) {
+  function playTrack(trackId: string, queueIds?: string[]) {
+    if (queueIds?.length) {
+      const nextQueue = uniqueIds(queueIds)
+      setPlaybackQueue(nextQueue)
+      if (settings.shuffleEnabled) {
+        shuffledQueue.current = shuffledFromCurrent(nextQueue, trackId)
+      }
+    }
     if (trackId === currentTrackId) {
       setIsPlaying((playing) => !playing)
       return
@@ -140,12 +174,74 @@ export function useLibrary() {
     setIsPlaying(true)
   }
 
-  function playAdjacent(direction: 1 | -1) {
-    if (tracks.length === 0) return
-    const currentIndex = Math.max(0, tracks.findIndex((track) => track.id === currentTrackId))
-    const nextIndex = (currentIndex + direction + tracks.length) % tracks.length
-    setCurrentTrackId(tracks[nextIndex].id)
+  function playbackOrder() {
+    const availableIds = new Set(tracks.map((track) => track.id))
+    const queue = uniqueIds(
+      (playbackQueue.length ? playbackQueue : tracks.map((track) => track.id))
+        .filter((trackId) => availableIds.has(trackId)),
+    )
+    if (!settings.shuffleEnabled) return queue
+
+    const queuedIds = new Set(queue)
+    const shuffled = shuffledQueue.current.filter((trackId) => queuedIds.has(trackId))
+    if (shuffled.length !== queue.length) {
+      shuffledQueue.current = shuffledFromCurrent(queue, currentTrackId)
+    }
+    return shuffledQueue.current
+  }
+
+  function playAdjacent(direction: 1 | -1, fromEnded = false) {
+    const order = playbackOrder()
+    if (order.length === 0) return
+    const locatedIndex = order.indexOf(currentTrackId ?? '')
+    const currentIndex = locatedIndex >= 0
+      ? locatedIndex
+      : direction === 1 ? -1 : order.length
+    const candidateIndex = currentIndex + direction
+    const reachedBoundary = candidateIndex < 0 || candidateIndex >= order.length
+    if (fromEnded && reachedBoundary && settings.repeatMode !== 'all') {
+      setIsPlaying(false)
+      return
+    }
+    const nextIndex = (candidateIndex + order.length) % order.length
+    setCurrentTrackId(order[nextIndex])
     setIsPlaying(true)
+  }
+
+  function handleTrackEnded() {
+    if (!settings.autoplay) {
+      setIsPlaying(false)
+      return
+    }
+    playAdjacent(1, true)
+  }
+
+  async function updatePlaybackSettings(nextSettings: AppSettings) {
+    setSettings(nextSettings)
+    try {
+      setSettings(await persistSettings(nextSettings))
+    } catch (reason) {
+      setError(errorMessage(reason))
+    }
+  }
+
+  function toggleShuffle() {
+    const shuffleEnabled = !settings.shuffleEnabled
+    if (shuffleEnabled) {
+      shuffledQueue.current = shuffledFromCurrent(playbackOrder(), currentTrackId)
+    } else {
+      shuffledQueue.current = []
+    }
+    void updatePlaybackSettings({ ...settings, shuffleEnabled })
+  }
+
+  function cycleRepeatMode() {
+    const nextModes: Record<RepeatMode, RepeatMode> = {
+      off: 'all',
+      all: 'one',
+      one: 'off',
+    }
+    void updatePlaybackSettings({ ...settings, repeatMode: nextModes[settings.repeatMode] })
   }
 
   async function toggleLike(trackId: string) {
@@ -363,9 +459,36 @@ export function useLibrary() {
     setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
       ? { ...playlist, trackIds: playlist.trackIds.filter((id) => id !== trackId) }
       : playlist))
+    if (activeView === `playlist:${playlistId}`) {
+      setPlaybackQueue((current) => current.filter((id) => id !== trackId))
+      shuffledQueue.current = shuffledQueue.current.filter((id) => id !== trackId)
+    }
     try {
       await persistRemoveFromPlaylist(playlistId, trackId)
     } catch (reason) {
+      setError(errorMessage(reason))
+    }
+  }
+
+  async function reorderPlaylist(playlistId: string, trackIds: string[]) {
+    const previousOrder = playlists.find((playlist) => playlist.id === playlistId)?.trackIds
+    if (!previousOrder || previousOrder.length !== trackIds.length) return
+    setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
+      ? { ...playlist, trackIds }
+      : playlist))
+    if (activeView === `playlist:${playlistId}`) {
+      setPlaybackQueue(trackIds)
+      if (settings.shuffleEnabled) {
+        shuffledQueue.current = shuffledFromCurrent(trackIds, currentTrackId)
+      }
+    }
+    try {
+      await persistPlaylistOrder(playlistId, trackIds)
+      setNotice('Ordem da playlist salva ♡')
+    } catch (reason) {
+      setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
+        ? { ...playlist, trackIds: previousOrder }
+        : playlist))
       setError(errorMessage(reason))
     }
   }
@@ -392,6 +515,7 @@ export function useLibrary() {
     cancelMediaDownload,
     clearMediaAnalysis,
     createPlaylist,
+    cycleRepeatMode,
     currentTrack,
     downloadFromUrl,
     downloadAnalyzedMedia,
@@ -404,10 +528,13 @@ export function useLibrary() {
     isReady,
     mediaAnalysis,
     notice,
+    onTrackEnded: handleTrackEnded,
+    playbackQueueLength,
     playNext: () => playAdjacent(1),
     playPrevious: () => playAdjacent(-1),
     playTrack,
     playlists,
+    reorderPlaylist,
     removeFromPlaylist,
     saveSettings,
     setActiveView,
@@ -416,6 +543,7 @@ export function useLibrary() {
     settings,
     toggleFavorite,
     toggleLike,
+    toggleShuffle,
     tracks,
   }
 }

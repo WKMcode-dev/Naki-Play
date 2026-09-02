@@ -34,6 +34,7 @@ export interface Playlist {
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system'
+export type RepeatMode = 'off' | 'all' | 'one'
 
 export interface AppSettings {
   userName: string
@@ -46,6 +47,8 @@ export interface AppSettings {
   reduceMotion: boolean
   compactMode: boolean
   autoplay: boolean
+  shuffleEnabled: boolean
+  repeatMode: RepeatMode
   volume: number
 }
 

@@ -21,6 +21,9 @@ pub fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<App
     if !matches!(settings.theme_mode.as_str(), "light" | "dark" | "system") {
         return Err("o modo de tema informado é inválido".to_string());
     }
+    if !matches!(settings.repeat_mode.as_str(), "off" | "all" | "one") {
+        return Err("o modo de repetição informado é inválido".to_string());
+    }
     for color in [
         &settings.primary_color,
         &settings.accent_color,
@@ -47,7 +50,9 @@ pub fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<App
                reduce_motion = ?8,
                compact_mode = ?9,
                autoplay = ?10,
-               volume = ?11
+               shuffle_enabled = ?11,
+               repeat_mode = ?12,
+               volume = ?13
              WHERE id = 1",
             rusqlite::params![
                 user_name,
@@ -60,6 +65,8 @@ pub fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<App
                 i64::from(settings.reduce_motion),
                 i64::from(settings.compact_mode),
                 i64::from(settings.autoplay),
+                i64::from(settings.shuffle_enabled),
+                settings.repeat_mode,
                 volume,
             ],
         )

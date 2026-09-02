@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 use tauri::Manager;
@@ -41,6 +41,8 @@ pub struct AppSettings {
     pub reduce_motion: bool,
     pub compact_mode: bool,
     pub autoplay: bool,
+    pub shuffle_enabled: bool,
+    pub repeat_mode: String,
     pub volume: f64,
 }
 
@@ -93,8 +95,13 @@ pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
                dark_background TEXT NOT NULL,
                reduce_motion INTEGER NOT NULL DEFAULT 0,
                compact_mode INTEGER NOT NULL DEFAULT 0,
-               autoplay INTEGER NOT NULL DEFAULT 0,
+               autoplay INTEGER NOT NULL DEFAULT 1,
                volume REAL NOT NULL DEFAULT 0.82
+             );
+
+             CREATE TABLE IF NOT EXISTS schema_meta (
+               key TEXT PRIMARY KEY,
+               value TEXT NOT NULL
              );
 
              CREATE TABLE IF NOT EXISTS tracks (
@@ -132,12 +139,70 @@ pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
                autoplay, volume
              ) VALUES (
                1, 'Meu amor', 'Naki', 'system', '#60354f', '#b75f8b',
-               '#fbf9f7', '#171218', 0, 0, 0, 0.82
+               '#fbf9f7', '#171218', 0, 0, 1, 0.82
              );",
         )
         .map_err(|error| format!("não foi possível preparar o banco local: {error}"))?;
 
+    ensure_settings_column(
+        &connection,
+        "shuffle_enabled",
+        "ALTER TABLE settings ADD COLUMN shuffle_enabled INTEGER NOT NULL DEFAULT 0",
+    )?;
+    ensure_settings_column(
+        &connection,
+        "repeat_mode",
+        "ALTER TABLE settings ADD COLUMN repeat_mode TEXT NOT NULL DEFAULT 'off'",
+    )?;
+
+    let playback_defaults_applied = connection
+        .query_row(
+            "SELECT value FROM schema_meta WHERE key = 'playback-defaults-v1'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| {
+            format!("não foi possível verificar a atualização de reprodução: {error}")
+        })?
+        .is_some();
+    if !playback_defaults_applied {
+        connection
+            .execute("UPDATE settings SET autoplay = 1 WHERE id = 1", [])
+            .map_err(|error| format!("não foi possível ativar a reprodução contínua: {error}"))?;
+        connection
+            .execute(
+                "INSERT INTO schema_meta (key, value) VALUES ('playback-defaults-v1', 'applied')",
+                [],
+            )
+            .map_err(|error| {
+                format!("não foi possível registrar a atualização de reprodução: {error}")
+            })?;
+    }
+
     Ok(connection)
+}
+
+fn ensure_settings_column(
+    connection: &Connection,
+    column_name: &str,
+    migration: &str,
+) -> Result<(), String> {
+    let mut statement = connection
+        .prepare("PRAGMA table_info(settings)")
+        .map_err(|error| format!("não foi possível verificar as configurações: {error}"))?;
+    let columns = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|error| format!("não foi possível ler as configurações: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("não foi possível listar as configurações: {error}"))?;
+    drop(statement);
+    if !columns.iter().any(|column| column == column_name) {
+        connection
+            .execute_batch(migration)
+            .map_err(|error| format!("não foi possível atualizar as configurações: {error}"))?;
+    }
+    Ok(())
 }
 
 pub fn load_settings(connection: &Connection) -> Result<AppSettings, String> {
@@ -145,7 +210,7 @@ pub fn load_settings(connection: &Connection) -> Result<AppSettings, String> {
         .query_row(
             "SELECT user_name, app_title, theme_mode, primary_color, accent_color,
                     light_background, dark_background, reduce_motion, compact_mode,
-                    autoplay, volume
+                    autoplay, shuffle_enabled, repeat_mode, volume
              FROM settings WHERE id = 1",
             [],
             |row| {
@@ -160,7 +225,9 @@ pub fn load_settings(connection: &Connection) -> Result<AppSettings, String> {
                     reduce_motion: row.get::<_, i64>(7)? != 0,
                     compact_mode: row.get::<_, i64>(8)? != 0,
                     autoplay: row.get::<_, i64>(9)? != 0,
-                    volume: row.get(10)?,
+                    shuffle_enabled: row.get::<_, i64>(10)? != 0,
+                    repeat_mode: row.get(11)?,
+                    volume: row.get(12)?,
                 })
             },
         )

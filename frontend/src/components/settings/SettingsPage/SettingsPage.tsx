@@ -216,7 +216,7 @@ export function SettingsPage({
           <Toggle
             checked={draft.autoplay}
             label="Continuar tocando"
-            description="Tocar automaticamente a próxima música da biblioteca."
+            description="Tocar automaticamente a próxima música da fila atual."
             onChange={(value) => update('autoplay', value)}
           />
           <Toggle

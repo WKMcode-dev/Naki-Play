@@ -6,8 +6,8 @@ Um player pessoal e carinhoso para Android e Windows, feito com React, Rust, Kot
 
 ## Baixar
 
-- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.1.1/Naki-Play-0.1.1-windows-x64-setup.exe)
-- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.1.1/Naki-Play-0.1.1-android-arm64-debug.apk)
+- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.2.0/Naki-Play-0.2.0-windows-x64-setup.exe)
+- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.2.0/Naki-Play-0.2.0-android-arm64-debug.apk)
 
 Os pacotes também ficam reunidos na página da [versão mais recente](https://github.com/WKMcode-dev/Naki-Play/releases/latest), junto dos hashes SHA-256 e das instruções de instalação.
 
@@ -22,7 +22,8 @@ Os pacotes também ficam reunidos na página da [versão mais recente](https://g
 - `yt-dlp`, Python e FFmpeg incluídos no APK Android;
 - armazenamento privado, SQLite e reprodução offline;
 - importação de MP3, WAV, M4A, AAC, FLAC, OGG, OPUS, MP4, WEBM e MOV;
-- músicas gostadas, favoritas, playlists e preferências de tema;
+- reprodução contínua da fila, ordem aleatória e repetição da fila ou de uma faixa;
+- músicas gostadas, favoritas, playlists reordenáveis por arrastar ou por título e preferências de tema;
 - interface responsiva e personalizada para celular e computador.
 
 A versão no navegador serve para visualizar a interface. A biblioteca persistente e o conversor funcionam nos aplicativos instalados.

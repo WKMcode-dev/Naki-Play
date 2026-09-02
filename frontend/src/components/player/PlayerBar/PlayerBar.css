@@ -99,6 +99,30 @@
   color: var(--berry-deep);
 }
 
+.player-controls .player-control--active {
+  color: var(--rose-strong);
+  background: var(--rose-wash);
+}
+
+.player-control--repeat {
+  position: relative;
+}
+
+.player-control--repeat small {
+  position: absolute;
+  right: 1px;
+  bottom: -1px;
+  min-width: 11px;
+  height: 11px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: var(--rose-strong);
+  font-size: 7px;
+  line-height: 1;
+}
+
 .player-controls .player-controls__main {
   width: 35px;
   height: 35px;
@@ -168,9 +192,11 @@
   .player-bar {
     position: fixed;
     inset: auto 19px 84px;
-    height: 67px;
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 0 12px;
+    height: 116px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 48px 50px;
+    gap: 3px;
+    padding: 8px 12px;
     border: 1px solid rgba(133, 80, 108, 0.14);
     border-radius: 16px;
     box-shadow: 0 12px 34px rgba(75, 45, 63, 0.15);
@@ -183,10 +209,18 @@
   }
 
   .player-center {
-    min-width: auto;
+    width: 100%;
+    min-width: 0;
   }
 
-  .player-controls button:not(.player-controls__main),
+  .player-controls {
+    gap: clamp(7px, 4vw, 18px);
+  }
+
+  .player-controls button {
+    display: grid;
+  }
+
   .player-progress,
   .player-extras,
   .player-like {

@@ -45,6 +45,15 @@ function App() {
     ? library.activeView.slice('playlist:'.length)
     : undefined
   const normalizedQuery = query.trim().toLocaleLowerCase('pt-BR')
+  const currentPlaylistTracks = useMemo(() => {
+    if (!currentPlaylistId) return undefined
+    const playlist = library.playlists.find((item) => item.id === currentPlaylistId)
+    const tracksById = new Map(library.tracks.map((track) => [track.id, track]))
+    return playlist?.trackIds
+      .map((trackId) => tracksById.get(trackId))
+      .filter((track): track is MediaTrack => Boolean(track)) ?? []
+  }, [currentPlaylistId, library.playlists, library.tracks])
+
   const visibleTracks = useMemo(() => {
     let result: MediaTrack[] = library.tracks
 
@@ -54,9 +63,8 @@ function App() {
       result = result.filter((track) => track.isFavorite)
     } else if (library.activeView === 'downloads') {
       result = result.filter((track) => track.source === 'local' || track.source === 'direct' || track.source === 'youtube')
-    } else if (currentPlaylistId) {
-      const playlist = library.playlists.find((item) => item.id === currentPlaylistId)
-      result = result.filter((track) => playlist?.trackIds.includes(track.id))
+    } else if (currentPlaylistTracks) {
+      result = currentPlaylistTracks
     }
 
     if (normalizedQuery) {
@@ -68,7 +76,7 @@ function App() {
     }
 
     return result
-  }, [currentPlaylistId, library.activeView, library.playlists, library.tracks, normalizedQuery])
+  }, [currentPlaylistTracks, library.activeView, library.tracks, normalizedQuery])
 
   function requestImport() {
     if (isNative) void library.importFromPicker()
@@ -175,7 +183,7 @@ function App() {
                   playlists={library.playlists}
                   tracks={visibleTracks.slice(0, 4)}
                   onAddToPlaylist={(playlistId, trackId) => void library.addToPlaylist(playlistId, trackId)}
-                  onPlay={library.playTrack}
+                  onPlay={(trackId) => library.playTrack(trackId, visibleTracks.slice(0, 4).map((track) => track.id))}
                   onToggleFavorite={(trackId) => void library.toggleFavorite(trackId)}
                   onToggleLike={(trackId) => void library.toggleLike(trackId)}
                 />
@@ -215,10 +223,14 @@ function App() {
                 emptyMessage={details?.empty}
                 isPlaying={library.isPlaying}
                 playlists={library.playlists}
+                playlistTracks={currentPlaylistTracks}
                 tracks={visibleTracks}
                 onAddToPlaylist={(playlistId, trackId) => void library.addToPlaylist(playlistId, trackId)}
-                onPlay={library.playTrack}
+                onPlay={(trackId) => library.playTrack(trackId, visibleTracks.map((track) => track.id))}
                 onRemoveFromPlaylist={(playlistId, trackId) => void library.removeFromPlaylist(playlistId, trackId)}
+                onReorderPlaylist={currentPlaylistId
+                  ? (trackIds) => void library.reorderPlaylist(currentPlaylistId, trackIds)
+                  : undefined}
                 onToggleFavorite={(trackId) => void library.toggleFavorite(trackId)}
                 onToggleLike={(trackId) => void library.toggleLike(trackId)}
               />
@@ -234,12 +246,17 @@ function App() {
         </main>
 
         <PlayerBar
-          autoplay={library.settings.autoplay}
           isPlaying={library.isPlaying}
+          queueLength={library.playbackQueueLength}
+          repeatMode={library.settings.repeatMode}
+          shuffleEnabled={library.settings.shuffleEnabled}
           track={library.currentTrack}
           volume={library.settings.volume}
           onNext={library.playNext}
           onPrevious={library.playPrevious}
+          onRepeatChange={library.cycleRepeatMode}
+          onShuffleChange={library.toggleShuffle}
+          onTrackEnded={library.onTrackEnded}
           onToggle={() => library.setIsPlaying((playing) => !playing)}
           onToggleLike={(trackId) => void library.toggleLike(trackId)}
           onVolumeChange={library.setVolume}

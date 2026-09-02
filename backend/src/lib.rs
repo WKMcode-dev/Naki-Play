@@ -15,6 +15,7 @@ pub fn run() {
             commands::library::download_track_from_url,
             commands::library::import_tracks,
             commands::library::remove_track_from_playlist,
+            commands::library::reorder_playlist_tracks,
             commands::library::set_track_favorite,
             commands::library::set_track_liked,
             commands::library::supported_media_extensions,
