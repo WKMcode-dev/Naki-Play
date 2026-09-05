@@ -8,6 +8,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_naki_media::init())
         .invoke_handler(tauri::generate_handler![
+            commands::catalog::rename_playlist,
+            commands::catalog::delete_playlist,
+            commands::catalog::update_track_metadata,
             commands::health::app_health,
             commands::library::add_track_to_playlist,
             commands::library::bootstrap_library,

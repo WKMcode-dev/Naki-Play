@@ -5,6 +5,9 @@ import {
   cancelExternalDownload,
   chooseAndImportTracks,
   confirmTrackDeletion,
+  persistDeletePlaylist,
+  persistRenamePlaylist,
+  persistTrackMetadata,
   defaultSettings,
   downloadDirectTrack,
   downloadExternalMedia,
@@ -96,6 +99,8 @@ function waitForMediaRelease() {
 export function useLibrary() {
   const [tracks, setTracks] = useState<MediaTrack[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
+  const catalogPending = useRef(false)
+  const [isCatalogBusy, setIsCatalogBusy] = useState(false)
   const [settings, setSettings] = useState<AppSettings>(defaultSettings)
   const [activeView, setActiveView] = useState<LibraryView>('home')
   const [currentTrackId, setCurrentTrackId] = useState<string>()
@@ -506,65 +511,106 @@ export function useLibrary() {
     clearMessages()
   }
 
-  async function createPlaylist(name: string) {
+  async function mutateCatalog(action: () => Promise<void>) {
+    if (catalogPending.current) return false
+    catalogPending.current = true
+    setIsCatalogBusy(true)
     clearMessages()
     try {
+      await action()
+      return true
+    } catch (reason) {
+      setError(errorMessage(reason))
+      return false
+    } finally {
+      catalogPending.current = false
+      setIsCatalogBusy(false)
+    }
+  }
+
+  async function createPlaylist(name: string) {
+    return mutateCatalog(async () => {
       const playlist = await persistPlaylist(name.trim())
       setPlaylists((current) => [...current, playlist])
       setActiveView(`playlist:${playlist.id}`)
-    } catch (reason) {
-      setError(errorMessage(reason))
-    }
+      setNotice('Playlist criada.')
+    })
+  }
+
+  async function renamePlaylist(playlistId: string, name: string) {
+    return mutateCatalog(async () => {
+      name = name.trim()
+      if (!name || name.length > 80) throw new Error('Informe um nome de 1 a 80 caracteres.')
+      await persistRenamePlaylist(playlistId, name)
+      setPlaylists((current) => current.map((item) => item.id === playlistId ? { ...item, name } : item))
+      setNotice('Playlist renomeada.')
+    })
+  }
+
+  async function deletePlaylist(playlistId: string) {
+    const playlist = playlists.find((item) => item.id === playlistId)
+    if (!playlist) return false
+    return mutateCatalog(async () => {
+      await persistDeletePlaylist(playlistId)
+      setPlaylists((current) => current.filter((item) => item.id !== playlistId))
+      setActiveView((current) => current === `playlist:${playlistId}` ? 'library' : current)
+      // The playing queue is a snapshot; removing a collection must not stop its media.
+      setNotice('Playlist excluída. Suas músicas e vídeos foram mantidos.')
+    })
+  }
+
+  async function editTrack(trackId: string, fields: { title: string; artist: string; album: string }) {
+    return mutateCatalog(async () => {
+      const next = { title: fields.title.trim(), artist: fields.artist.trim(), album: fields.album.trim() }
+      if (!next.title || Object.values(next).some((value) => value.length > 200)) {
+        throw new Error('Informe um título e use até 200 caracteres por campo.')
+      }
+      await persistTrackMetadata(trackId, next)
+      setTracks((current) => current.map((track) => track.id === trackId ? { ...track, ...next } : track))
+      setNotice('Informações atualizadas. O arquivo de mídia não foi alterado.')
+    })
   }
 
   async function addToPlaylist(playlistId: string, trackId: string) {
-    setPlaylists((current) => current.map((playlist) => playlist.id === playlistId && !playlist.trackIds.includes(trackId)
-      ? { ...playlist, trackIds: [...playlist.trackIds, trackId] }
-      : playlist))
-    try {
+    return mutateCatalog(async () => {
       await persistAddToPlaylist(playlistId, trackId)
+      setPlaylists((current) => current.map((playlist) => playlist.id === playlistId && !playlist.trackIds.includes(trackId)
+        ? { ...playlist, trackIds: [...playlist.trackIds, trackId] }
+        : playlist))
       setNotice('Música adicionada à playlist.')
-    } catch (reason) {
-      setError(errorMessage(reason))
-    }
+    })
   }
 
   async function removeFromPlaylist(playlistId: string, trackId: string) {
-    setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
-      ? { ...playlist, trackIds: playlist.trackIds.filter((id) => id !== trackId) }
-      : playlist))
-    if (activeView === `playlist:${playlistId}`) {
-      setPlaybackQueue((current) => current.filter((id) => id !== trackId))
-      shuffledQueue.current = shuffledQueue.current.filter((id) => id !== trackId)
-    }
-    try {
+    return mutateCatalog(async () => {
       await persistRemoveFromPlaylist(playlistId, trackId)
-    } catch (reason) {
-      setError(errorMessage(reason))
-    }
+      setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
+        ? { ...playlist, trackIds: playlist.trackIds.filter((id) => id !== trackId) }
+        : playlist))
+      if (activeView === `playlist:${playlistId}`) {
+        setPlaybackQueue((current) => current.filter((id) => id !== trackId))
+        shuffledQueue.current = shuffledQueue.current.filter((id) => id !== trackId)
+      }
+      setNotice('Mídia removida da playlist e mantida na biblioteca.')
+    })
   }
 
   async function reorderPlaylist(playlistId: string, trackIds: string[]) {
-    const previousOrder = playlists.find((playlist) => playlist.id === playlistId)?.trackIds
-    if (!previousOrder || previousOrder.length !== trackIds.length) return
-    setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
-      ? { ...playlist, trackIds }
-      : playlist))
-    if (activeView === `playlist:${playlistId}`) {
-      setPlaybackQueue(trackIds)
-      if (settings.shuffleEnabled) {
-        shuffledQueue.current = shuffledFromCurrent(trackIds, currentTrackId)
-      }
-    }
-    try {
+    return mutateCatalog(async () => {
+      const previousOrder = playlists.find((playlist) => playlist.id === playlistId)?.trackIds
+      if (!previousOrder || previousOrder.length !== trackIds.length) return
       await persistPlaylistOrder(playlistId, trackIds)
-      setNotice('Ordem da playlist salva.')
-    } catch (reason) {
       setPlaylists((current) => current.map((playlist) => playlist.id === playlistId
-        ? { ...playlist, trackIds: previousOrder }
+        ? { ...playlist, trackIds }
         : playlist))
-      setError(errorMessage(reason))
-    }
+      if (activeView === `playlist:${playlistId}`) {
+        setPlaybackQueue(trackIds)
+        if (settings.shuffleEnabled) {
+          shuffledQueue.current = shuffledFromCurrent(trackIds, currentTrackId)
+        }
+      }
+      setNotice('Ordem da playlist salva.')
+    })
   }
 
   async function saveSettings(nextSettings: AppSettings) {
@@ -589,6 +635,10 @@ export function useLibrary() {
     cancelMediaDownload,
     clearMediaAnalysis,
     createPlaylist,
+    renamePlaylist,
+    deletePlaylist,
+    editTrack,
+    isCatalogBusy,
     cycleRepeatMode,
     currentTrack,
     deleteTrack,

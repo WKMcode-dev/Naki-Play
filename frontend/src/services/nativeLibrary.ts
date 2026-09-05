@@ -233,6 +233,8 @@ export async function persistSettings(settings: AppSettings): Promise<AppSetting
 }
 
 export async function persistPlaylist(name: string): Promise<Playlist> {
+  name = name.trim()
+  if (!name || name.length > 80) throw new Error('O nome da playlist deve ter entre 1 e 80 caracteres.')
   if (!runningInTauri()) {
     return { id: crypto.randomUUID(), name, trackIds: [] }
   }
@@ -241,6 +243,18 @@ export async function persistPlaylist(name: string): Promise<Playlist> {
 
 export async function persistAddToPlaylist(playlistId: string, trackId: string) {
   if (runningInTauri()) await invoke('add_track_to_playlist', { playlistId, trackId })
+}
+
+export async function persistRenamePlaylist(playlistId: string, name: string) {
+  if (runningInTauri()) await invoke('rename_playlist', { playlistId, name })
+}
+
+export async function persistDeletePlaylist(playlistId: string) {
+  if (runningInTauri()) await invoke('delete_playlist', { playlistId })
+}
+
+export async function persistTrackMetadata(trackId: string, fields: { title: string; artist: string; album: string }) {
+  if (runningInTauri()) await invoke('update_track_metadata', { trackId, ...fields })
 }
 
 export async function persistRemoveFromPlaylist(playlistId: string, trackId: string) {

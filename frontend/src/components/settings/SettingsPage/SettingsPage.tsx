@@ -10,6 +10,7 @@ import {
   UserRound,
 } from 'lucide-react'
 import type { AppSettings, ThemeMode } from '../../../types/library'
+import { defaultSettings } from '../../../services/nativeLibrary'
 import './SettingsPage.css'
 
 interface SettingsPageProps {
@@ -249,6 +250,10 @@ export function SettingsPage({
           <span><strong>SQLite</strong><small>banco privado local</small></span>
         </div>
         <p className="storage-note">As configurações, playlists e referências dos arquivos permanecem no dispositivo. As músicas importadas são copiadas para a pasta privada do aplicativo.</p>
+        <button className="settings-save" type="button" disabled={isBusy} onClick={() => { setDraft({ ...defaultSettings }); setSaved(false) }}>
+          Restaurar preferências padrão
+        </button>
+        <p className="storage-note">Restaura apenas o formulário. Clique em Salvar alterações para confirmar; músicas e playlists não são apagadas.</p>
       </section>
     </div>
   )

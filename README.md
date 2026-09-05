@@ -6,8 +6,8 @@ Um player pessoal para Android e Windows, feito com React, Rust, Kotlin e Tauri.
 
 ## Baixar
 
-- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.4.1/Naki-Play-0.4.1-windows-x64-setup.exe)
-- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.4.1/Naki-Play-0.4.1-android-arm64-debug.apk)
+- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.5.0/Naki-Play-0.5.0-windows-x64-setup.exe)
+- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.5.0/Naki-Play-0.5.0-android-arm64-debug.apk)
 
 Os pacotes também ficam reunidos na página da [versão mais recente](https://github.com/WKMcode-dev/Naki-Play/releases/latest), junto dos hashes SHA-256 e das instruções de instalação.
 
@@ -27,10 +27,14 @@ Os pacotes também ficam reunidos na página da [versão mais recente](https://g
 - reprodução contínua da fila, ordem aleatória e repetição da música atual;
 - músicas gostadas, favoritas, playlists reordenáveis por arrastar ou por título e preferências de tema;
 - exclusão permanente da cópia privada, com confirmação e remoção automática das playlists;
+- criação, renomeação e exclusão de playlists sem apagar suas mídias;
+- edição de título, artista e álbum, além de restauração das preferências padrão;
 - tema neutro inspirado no Notion, modos claro/escuro e contraste automático para cores personalizadas;
 - interface responsiva para celular e computador, protegida das barras de navegação do Android.
 
 A versão no navegador serve para visualizar a interface. A biblioteca persistente e o conversor funcionam nos aplicativos instalados.
+
+Consulte [a gestão completa da biblioteca](docs/LIBRARY_CRUD.md) para conhecer as operações, seus limites e o roteiro de testes.
 
 ### Atualizações e dados locais
 

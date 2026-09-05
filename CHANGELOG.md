@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## [0.5.0] - 2026-09-05
+
+### Adicionado
+
+- renomeação e exclusão de playlists com confirmação, preservando mídias e outras coleções;
+- edição de título, artista e álbum sem alterar o arquivo original;
+- acesso às playlists pela biblioteca, inclusive em telas móveis;
+- formulários próprios para criar e gerenciar playlists, substituindo o prompt do navegador;
+- restauração das preferências padrão no formulário de configurações;
+- testes de preservação de mídias e validação das operações de catálogo.
+
+### Corrigido
+
+- operações de playlist só atualizam a interface após sucesso na persistência.
+
 ## [0.4.1] - 2026-09-05
 
 ### Adicionado
@@ -88,6 +103,7 @@ Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 - documentação de arquitetura, escopo e testes por plataforma.
 
 [0.4.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.4.1
+[0.5.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.5.0
 [0.4.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.4.0
 [0.3.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.1
 [0.3.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.0

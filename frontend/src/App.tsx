@@ -3,6 +3,7 @@ import { WelcomeHero } from './components/home/WelcomeHero/WelcomeHero'
 import { ImportDropzone } from './components/library/ImportDropzone/ImportDropzone'
 import { MediaDownloadCard } from './components/library/MediaDownloadCard/MediaDownloadCard'
 import { TrackList } from './components/library/TrackList/TrackList'
+import { CatalogEditor, type CatalogDraft } from './components/library/CatalogEditor'
 import { Header } from './components/layout/Header/Header'
 import { Sidebar } from './components/layout/Sidebar/Sidebar'
 import { PlayerBar } from './components/player/PlayerBar/PlayerBar'
@@ -37,6 +38,7 @@ const viewContent = {
 function App() {
   const library = useLibrary()
   const [query, setQuery] = useState('')
+  const [editor, setEditor] = useState<CatalogDraft>()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isNative = runningInTauri()
   const hasMediaEngine = mediaEngineAvailable()
@@ -84,8 +86,11 @@ function App() {
   }
 
   function createPlaylist() {
-    const name = window.prompt('Como vai se chamar a nova playlist?')
-    if (name?.trim()) void library.createPlaylist(name)
+    setEditor({ kind: 'create', name: '' })
+  }
+
+  function editTrack(track: MediaTrack) {
+    setEditor({ kind: 'track', id: track.id, title: track.title, artist: track.artist, album: track.album })
   }
 
   function pageDetails() {
@@ -148,6 +153,17 @@ function App() {
         )}
 
         <main className="app__content">
+          {library.activeView === 'library' && (
+            <section className="catalog-playlists" aria-label="Suas playlists">
+              <h2>Suas playlists</h2>
+              <button type="button" onClick={createPlaylist}>Criar playlist</button>
+              {library.playlists.map((playlist) => (
+                <button key={playlist.id} type="button" onClick={() => { setQuery(''); library.setActiveView(`playlist:${playlist.id}`) }}>
+                  {playlist.name} · {playlist.trackIds.length}
+                </button>
+              ))}
+            </section>
+          )}
           {library.activeView === 'settings' ? (
             <SettingsPage
               isBusy={library.isBusy}
@@ -184,6 +200,7 @@ function App() {
                   tracks={visibleTracks.slice(0, 4)}
                   onAddToPlaylist={(playlistId, trackId) => void library.addToPlaylist(playlistId, trackId)}
                   onDeleteTrack={library.deleteTrack}
+                  onEditTrack={editTrack}
                   onPlay={(trackId) => library.playTrack(trackId, visibleTracks.slice(0, 4).map((track) => track.id))}
                   onToggleFavorite={(trackId) => void library.toggleFavorite(trackId)}
                   onToggleLike={(trackId) => void library.toggleLike(trackId)}
@@ -197,6 +214,10 @@ function App() {
                   <h1>{details?.title}</h1>
                   <p>{details?.subtitle}</p>
                 </div>
+                {currentPlaylistId && <div className="catalog-actions">
+                  <button type="button" disabled={library.isCatalogBusy} onClick={() => setEditor({ kind: 'rename', id: currentPlaylistId, name: details?.title ?? '' })}>Renomear playlist</button>
+                  <button type="button" disabled={library.isCatalogBusy} onClick={() => setEditor({ kind: 'delete', id: currentPlaylistId, name: details?.title ?? '' })}>Excluir playlist</button>
+                </div>}
               </div>
               {library.activeView === 'downloads' && (
                 <>
@@ -228,6 +249,7 @@ function App() {
                 tracks={visibleTracks}
                 onAddToPlaylist={(playlistId, trackId) => void library.addToPlaylist(playlistId, trackId)}
                 onDeleteTrack={library.deleteTrack}
+                onEditTrack={editTrack}
                 onPlay={(trackId) => library.playTrack(trackId, visibleTracks.map((track) => track.id))}
                 onRemoveFromPlaylist={(playlistId, trackId) => void library.removeFromPlaylist(playlistId, trackId)}
                 onReorderPlaylist={currentPlaylistId
@@ -264,6 +286,11 @@ function App() {
           onVolumeChange={library.setVolume}
         />
       </div>
+      {editor && <CatalogEditor initial={editor} error={library.error} onClose={() => setEditor(undefined)}
+        onSave={(draft) => draft.kind === 'create' ? library.createPlaylist(draft.name)
+          : draft.kind === 'rename' ? library.renamePlaylist(draft.id, draft.name)
+          : draft.kind === 'delete' ? library.deletePlaylist(draft.id)
+          : library.editTrack(draft.id, draft)} />}
     </div>
   )
 }

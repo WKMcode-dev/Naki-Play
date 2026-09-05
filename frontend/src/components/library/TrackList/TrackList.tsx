@@ -13,6 +13,7 @@ interface TrackListProps {
   playlistTracks?: MediaTrack[]
   onAddToPlaylist: (playlistId: string, trackId: string) => void
   onDeleteTrack: (trackId: string) => void | Promise<void>
+  onEditTrack: (track: MediaTrack) => void
   onPlay: (trackId: string) => void
   onToggleFavorite: (trackId: string) => void
   onToggleLike: (trackId: string) => void
@@ -38,6 +39,7 @@ export function TrackList({
   playlistTracks,
   onAddToPlaylist,
   onDeleteTrack,
+  onEditTrack,
   onPlay,
   onToggleFavorite,
   onToggleLike,
@@ -262,6 +264,9 @@ export function TrackList({
                   }}
                 >
                   <Trash2 size={14} /> Excluir do dispositivo
+                </button>
+                <button type="button" onClick={() => { setOpenMenu(undefined); onEditTrack(track) }}>
+                  Editar informações
                 </button>
               </div>
             )}
