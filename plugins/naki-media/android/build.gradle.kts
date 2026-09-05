@@ -33,6 +33,7 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(project(":tauri-android"))
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")

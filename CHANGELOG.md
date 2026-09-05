@@ -2,6 +2,17 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## [0.5.1] - 2026-09-05 — Teste Android
+
+- corrige a verificação de atualização do extrator, que antes só acontecia na inicialização;
+- verifica a versão estável diariamente, com intervalo mínimo de 15 minutos após falhas;
+- serializa as operações do motor para não atualizá-lo durante outro processamento;
+- limita tentativas e tempo de espera da conexão de mídia;
+- mantém diagnóstico visível, informa a versão do extrator e explica erros 403/429, conexão e espaço;
+- esclarece que Premium não é requisito do Naki e que restrições da origem continuam sendo respeitadas.
+
+Esta versão é de teste. A causa do HTTP 403 relatado ainda não foi confirmada no aparelho afetado; estas mudanças não garantem que todo link possa ser baixado.
+
 ## [0.5.0] - 2026-09-05
 
 ### Adicionado
@@ -104,6 +115,7 @@ Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
 [0.4.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.4.1
 [0.5.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.5.0
+[0.5.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.5.1
 [0.4.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.4.0
 [0.3.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.1
 [0.3.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.0

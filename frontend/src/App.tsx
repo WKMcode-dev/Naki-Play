@@ -222,6 +222,7 @@ function App() {
               {library.activeView === 'downloads' && (
                 <>
                   <MediaDownloadCard
+                    error={library.downloadError}
                     analysis={library.mediaAnalysis}
                     isBusy={library.isBusy}
                     isAvailable={hasMediaEngine}

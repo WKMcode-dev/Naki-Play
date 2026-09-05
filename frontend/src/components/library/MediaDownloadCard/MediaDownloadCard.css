@@ -283,3 +283,16 @@
     flex-basis: 64px;
   }
 }
+.media-download__error {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.media-download__error p { margin: 8px 0 0; white-space: pre-wrap; }

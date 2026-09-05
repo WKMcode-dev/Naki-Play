@@ -4,6 +4,7 @@ import type { ExternalMediaAnalysis, MediaDownloadStatus } from '../../../types/
 import './MediaDownloadCard.css'
 
 interface MediaDownloadCardProps {
+  error?: string
   analysis?: ExternalMediaAnalysis
   isBusy: boolean
   isAvailable: boolean
@@ -29,6 +30,7 @@ function etaLabel(seconds?: number) {
 }
 
 export function MediaDownloadCard({
+  error,
   analysis,
   isBusy,
   isAvailable,
@@ -167,9 +169,13 @@ export function MediaDownloadCard({
         </div>
       )}
 
+      {error && <div className="media-download__error" role="alert">
+        <strong>O download não foi concluído</strong>
+        <p>{error}</p>
+      </div>}
       <p className="media-download__note">
         {isAvailable
-          ? 'O processamento acontece neste dispositivo e pode levar alguns minutos em vídeos longos.'
+          ? 'Não é necessário YouTube Premium para usar o Naki. Use links públicos de conteúdo autorizado. A origem pode limitar ou recusar o acesso; links privados ou restritos não são garantidos. Mantenha o app aberto durante o processamento.'
           : 'Instale e abra a versão Android ou Windows para analisar e baixar links.'}
       </p>
     </section>

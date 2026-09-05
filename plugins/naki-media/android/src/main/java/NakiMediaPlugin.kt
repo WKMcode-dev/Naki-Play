@@ -68,33 +68,44 @@ data class DownloadResponse(
 
 @TauriPlugin
 class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
-    companion object {
-        private const val UPDATE_INTERVAL_MS = 7L * 24 * 60 * 60 * 1000
-    }
-
-    private val worker = Executors.newCachedThreadPool()
+    // Serialize engine use so an update cannot replace it during another download.
+    private val worker = Executors.newSingleThreadExecutor()
+    private var lastUpdateAttempt = 0L
+    private var updateFailed = false
 
     @Volatile
     private var initialized = false
 
     @Synchronized
     private fun ensureInitialized() {
-        if (initialized) return
         val context = activity.applicationContext
-        YoutubeDL.getInstance().init(context)
+        if (!initialized) {
+            YoutubeDL.getInstance().init(context)
+            FFmpeg.getInstance().init(context)
+            initialized = true
+        }
         val preferences = context.getSharedPreferences("naki-media", Activity.MODE_PRIVATE)
-        val lastUpdate = preferences.getLong("yt-dlp-last-update", 0)
-        if (System.currentTimeMillis() - lastUpdate >= UPDATE_INTERVAL_MS) {
+        // A new checkpoint also checks once when migrating from the old startup-only policy.
+        val lastUpdate = preferences.getLong("yt-dlp-daily-check", 0)
+        val now = System.currentTimeMillis()
+        if (DownloadSupport.shouldCheckUpdate(now, lastUpdate, lastUpdateAttempt)) {
+            lastUpdateAttempt = now
             try {
                 YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel._STABLE)
-                preferences.edit().putLong("yt-dlp-last-update", System.currentTimeMillis()).apply()
+                    ?: throw IllegalStateException("A atualização não retornou um resultado")
+                preferences.edit().putLong("yt-dlp-daily-check", System.currentTimeMillis()).apply()
+                updateFailed = false
             } catch (_: Exception) {
-                // The bundled engine remains available when the device is offline.
+                updateFailed = true
             }
         }
-        FFmpeg.getInstance().init(context)
-        initialized = true
     }
+
+    private fun failure(error: Exception): String = DownloadSupport.failure(
+        error.message ?: error.javaClass.simpleName,
+        runCatching { YoutubeDL.getInstance().versionName(activity.applicationContext) }.getOrNull(),
+        updateFailed,
+    )
 
     private fun validateUrl(value: String): String {
         val url = value.trim()
@@ -189,7 +200,8 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
                 val url = validateUrl(args.url)
                 val request = YoutubeDLRequest(url)
                     .addOption("--no-playlist")
-                    .addOption("--no-warnings")
+                    .addOption("--socket-timeout", "20")
+                    .addOption("--retries", "2")
                 val info = YoutubeDL.getInstance().getInfo(request)
                 invoke.resolveObject(
                     MediaAnalysis(
@@ -204,7 +216,7 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
                     )
                 )
             } catch (error: Exception) {
-                invoke.reject(error.message ?: "Não foi possível analisar esse link")
+                invoke.reject(failure(error))
             }
         }
     }
@@ -214,6 +226,7 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
         val args = invoke.parseArgs(DownloadArgs::class.java)
         worker.execute {
             try {
+                sendPreparing(args, "Conferindo o motor de download…")
                 ensureInitialized()
                 val url = validateUrl(args.url)
                 val match = Regex("^(audio|video)-(\\d+)$").matchEntire(args.optionId)
@@ -235,7 +248,9 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
                     .addOption("--no-playlist")
                     .addOption("--newline")
                     .addOption("--no-mtime")
-                    .addOption("--no-warnings")
+                    .addOption("--socket-timeout", "20")
+                    .addOption("--retries", "2")
+                    .addOption("--fragment-retries", "2")
                     .addOption("--embed-metadata")
                     .addOption("-o", "${destination.absolutePath}.%(ext)s")
 
@@ -280,7 +295,7 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
                     )
                 )
             } catch (error: Exception) {
-                invoke.reject(error.message ?: "O download não pôde ser concluído")
+                invoke.reject(failure(error))
             }
         }
     }

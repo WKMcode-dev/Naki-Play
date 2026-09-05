@@ -111,6 +111,7 @@ export function useLibrary() {
   const [notice, setNotice] = useState<string>()
   const [error, setError] = useState<string>()
   const [mediaAnalysis, setMediaAnalysis] = useState<ExternalMediaAnalysis>()
+  const [downloadError, setDownloadError] = useState<string>()
   const [downloadStatus, setDownloadStatus] = useState<MediaDownloadStatus>({
     stage: 'idle',
     progress: 0,
@@ -395,6 +396,7 @@ export function useLibrary() {
   }
 
   async function analyzeMedia(url: string) {
+    setDownloadError(undefined)
     clearMessages()
     setIsBusy(true)
     setMediaAnalysis(undefined)
@@ -405,7 +407,8 @@ export function useLibrary() {
       setNotice('Link analisado. Agora escolha o formato que você quer.')
       return true
     } catch (reason) {
-      setError(errorMessage(reason))
+      setDownloadError(errorMessage(reason))
+      setError('Não foi possível analisar o link. Confira os detalhes no painel de download.')
       return false
     } finally {
       setIsBusy(false)
@@ -446,6 +449,7 @@ export function useLibrary() {
 
   async function downloadAnalyzedMedia(optionId: string, confirmedAuthorized: boolean) {
     if (!mediaAnalysis) return false
+    setDownloadError(undefined)
     clearMessages()
     setIsBusy(true)
     const jobId = crypto.randomUUID()
@@ -476,7 +480,8 @@ export function useLibrary() {
       if (cancelledJobId.current === jobId) {
         setNotice('Download cancelado.')
       } else {
-        setError(errorMessage(reason))
+        setDownloadError(errorMessage(reason))
+        setError('Download não concluído. Confira os detalhes no painel de download.')
       }
       return false
     } finally {
@@ -506,6 +511,7 @@ export function useLibrary() {
 
   function clearMediaAnalysis() {
     if (isBusy) return
+    setDownloadError(undefined)
     setMediaAnalysis(undefined)
     setDownloadStatus({ stage: 'idle', progress: 0 })
     clearMessages()
@@ -645,6 +651,7 @@ export function useLibrary() {
     downloadFromUrl,
     downloadAnalyzedMedia,
     downloadStatus,
+    downloadError,
     error,
     importBrowserFiles,
     importFromPicker,

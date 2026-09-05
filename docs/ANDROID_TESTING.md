@@ -39,6 +39,14 @@ Use um vídeo curto que seja seu, de domínio público ou autorizado.
 - se um site mudar e a análise parar de funcionar, conecte o aparelho à internet e tente novamente; o extrator verifica atualizações semanalmente;
 - guarde o link e a mensagem exibida ao registrar um problema, mas nunca publique links privados ou credenciais.
 
+## HTTP 403 e versão 0.5.1 de teste
+
+Um 403 significa que a origem recusou uma solicitação; não identifica sozinho a causa nem comprova necessidade de Premium. O fluxo do Naki não usa login/Premium. Conteúdo privado, DRM, autenticação e bloqueios da origem não são contornados.
+
+A versão 0.5.1 corrige a periodicidade da atualização estável do extrator e exibe a versão utilizada no diagnóstico. Não é uma correção confirmada para todos os 403. Para validar, instalar por cima, manter o app aberto, repetir o link autorizado que falhou e registrar a mensagem completa, versão Android/Naki e se a falha ocorre na análise ou no download. Não enviar cookies, senhas ou endereços assinados de mídia.
+
+Referência do motor: https://github.com/yausername/youtubedl-android/tree/0.18.1
+
 ## Antes de entregar ou publicar
 
 - testar em pelo menos um aparelho físico, pois o build automatizado não valida codecs, bateria ou comportamento do fabricante;
