@@ -21,6 +21,8 @@ Use um vídeo curto que seja seu, de domínio público ou autorizado.
 - abra novamente e confirme que a faixa continua na biblioteca;
 - repita com uma opção MP4 disponível;
 - confirme que o vídeo aparece no display, pode ser pausado e abre em tela cheia;
+- arraste a barra com o título do vídeo e confira que a janela continua dentro da tela ao girar o aparelho;
+- entre e saia da tela cheia pelo botão inferior e por **Sair da tela cheia**, sem reiniciar a reprodução;
 - toque no alto-falante para silenciar e restaurar o volume;
 - em um aparelho com navegação por três botões, confirme que a barra inferior não cobre o player nem o menu;
 - inicie outro download e teste **Cancelar** depois que o progresso começar;

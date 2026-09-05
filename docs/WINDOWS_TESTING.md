@@ -19,6 +19,9 @@ Use um vídeo curto próprio, em domínio público ou autorizado.
 - feche e abra novamente para confirmar a persistência;
 - repita com uma opção MP4;
 - confirme que o vídeo aparece no display, pode ser pausado e abre em tela cheia;
+- arraste a barra com o título do vídeo; com foco nela, teste as setas do teclado (Shift aumenta o passo);
+- entre e saia da tela cheia pelo botão inferior, por **Sair da tela cheia** e por Esc; a posição deve ser restaurada sem reiniciar a reprodução;
+- redimensione a janela do aplicativo e confira que o vídeo permanece visível e acima dos controles;
 - clique no alto-falante para silenciar e restaurar o volume;
 - inicie outro download e teste **Cancelar** após o progresso começar;
 - minimize a janela e confirme que o processo continua;

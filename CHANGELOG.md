@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## [0.4.1] - 2026-09-05
+
+### Adicionado
+
+- barra superior para arrastar o player de vídeo com mouse ou toque;
+- movimentação da janela de vídeo com as setas do teclado;
+- limite de posição para manter a janela visível e acima dos controles, inclusive ao redimensionar a tela.
+
+### Corrigido
+
+- o botão de tela cheia agora também volta ao player flutuante, preservando sua posição;
+- a tela cheia exibe um botão explícito **Sair da tela cheia**.
+
 ## [0.4.0] - 2026-09-05
 
 ### Adicionado
@@ -74,6 +87,7 @@ Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 - yt-dlp, Python e FFmpeg empacotados no Android;
 - documentação de arquitetura, escopo e testes por plataforma.
 
+[0.4.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.4.1
 [0.4.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.4.0
 [0.3.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.1
 [0.3.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.0

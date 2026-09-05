@@ -3,6 +3,8 @@ import {
   Heart,
   ListMusic,
   Maximize2,
+  Minimize2,
+  Move,
   Pause,
   Play,
   Repeat2,
@@ -13,6 +15,7 @@ import {
   Volume2,
 } from 'lucide-react'
 import type { MediaTrack, RepeatMode } from '../../../types/library'
+import { useVideoWindow } from '../../../hooks/useVideoWindow'
 import './PlayerBar.css'
 
 interface PlayerBarProps {
@@ -69,6 +72,7 @@ export function PlayerBar({
   const [duration, setDuration] = useState(0)
   const [mediaError, setMediaError] = useState<string>()
   const showsVideo = isVideoTrack(track)
+  const videoWindow = useVideoWindow(videoStageRef, showsVideo)
 
   useEffect(() => {
     playbackErrorHandler.current = onPlaybackError
@@ -121,16 +125,11 @@ export function PlayerBar({
     onVolumeChange(volume > 0 ? 0 : lastAudibleVolume.current)
   }
 
-  async function openFullscreen() {
-    const stage = videoStageRef.current
-    if (!stage?.requestFullscreen) {
-      setMediaError('A tela cheia não está disponível neste dispositivo.')
-      return
-    }
+  async function toggleFullscreen() {
     try {
-      await stage.requestFullscreen()
+      await videoWindow.toggleFullscreen()
     } catch {
-      setMediaError('Não foi possível abrir o vídeo em tela cheia.')
+      setMediaError('Não foi possível alterar o modo de tela cheia.')
     }
   }
 
@@ -141,7 +140,14 @@ export function PlayerBar({
   return (
     <>
       {showsVideo && (
-        <div className="player-video-stage" ref={videoStageRef}>
+        <div
+          className={`player-video-stage${videoWindow.position ? ' player-video-stage--positioned' : ''}${videoWindow.isDragging ? ' player-video-stage--dragging' : ''}`}
+          ref={videoStageRef}
+          style={videoWindow.position ? {
+            '--video-x': `${videoWindow.position.x}px`,
+            '--video-y': `${videoWindow.position.y}px`,
+          } as CSSProperties : undefined}
+        >
           <video
             ref={(element) => { mediaRef.current = element }}
             loop={repeatMode === 'one'}
@@ -153,6 +159,31 @@ export function PlayerBar({
             onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
             onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
           />
+          <div className="player-video-stage__header">
+            {videoWindow.isFullscreen ? (
+              <>
+                <span className="player-video-stage__title">{track.title}</span>
+                <button className="player-video-stage__exit" type="button" onClick={() => void toggleFullscreen()}>
+                  <Minimize2 size={17} /> Sair da tela cheia
+                </button>
+              </>
+            ) : (
+              <button
+                className="player-video-stage__drag"
+                type="button"
+                aria-label="Mover player de vídeo. Arraste ou use as setas do teclado."
+                title="Arraste para mover"
+                onPointerDown={videoWindow.startDrag}
+                onPointerMove={videoWindow.moveDrag}
+                onPointerUp={videoWindow.endDrag}
+                onPointerCancel={videoWindow.endDrag}
+                onLostPointerCapture={videoWindow.endDrag}
+                onKeyDown={videoWindow.moveWithKeyboard}
+              >
+                <Move size={16} /> <span>{track.title}</span>
+              </button>
+            )}
+          </div>
           {!isPlaying && (
             <button className="player-video-stage__toggle" type="button" aria-label="Reproduzir vídeo" onClick={onToggle}>
               <Play size={34} fill="currentColor" />
@@ -179,8 +210,14 @@ export function PlayerBar({
             <button type="button" aria-label={volume > 0 ? 'Silenciar vídeo' : 'Restaurar volume do vídeo'} onClick={toggleMuted}>
               {volume > 0 ? <Volume2 size={17} /> : <VolumeX size={17} />}
             </button>
-            <button type="button" aria-label="Exibir vídeo em tela cheia" onClick={() => void openFullscreen()}>
-              <Maximize2 size={17} />
+            <button
+              type="button"
+              aria-label={videoWindow.isFullscreen ? 'Sair da tela cheia' : 'Exibir vídeo em tela cheia'}
+              aria-pressed={videoWindow.isFullscreen}
+              title={videoWindow.isFullscreen ? 'Voltar ao player flutuante' : 'Exibir vídeo em tela cheia'}
+              onClick={() => void toggleFullscreen()}
+            >
+              {videoWindow.isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
             </button>
           </div>
           {mediaError && <span className="player-video-stage__error" role="alert">{mediaError}</span>}

@@ -6,8 +6,8 @@ Um player pessoal para Android e Windows, feito com React, Rust, Kotlin e Tauri.
 
 ## Baixar
 
-- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.4.0/Naki-Play-0.4.0-windows-x64-setup.exe)
-- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.4.0/Naki-Play-0.4.0-android-arm64-debug.apk)
+- [Windows x64 — instalador `.exe`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.4.1/Naki-Play-0.4.1-windows-x64-setup.exe)
+- [Android ARM64 — aplicativo `.apk`](https://github.com/WKMcode-dev/Naki-Play/releases/download/v0.4.1/Naki-Play-0.4.1-android-arm64-debug.apk)
 
 Os pacotes também ficam reunidos na página da [versão mais recente](https://github.com/WKMcode-dev/Naki-Play/releases/latest), junto dos hashes SHA-256 e das instruções de instalação.
 
@@ -22,7 +22,7 @@ Os pacotes também ficam reunidos na página da [versão mais recente](https://g
 - `yt-dlp`, Python e FFmpeg incluídos no APK Android;
 - armazenamento privado, SQLite e reprodução offline;
 - importação de MP3, WAV, M4A, AAC, FLAC, OGG, OPUS, MP4, WEBM e MOV;
-- exibição de vídeos no próprio player, com controles e modo de tela cheia;
+- exibição de vídeos em janela flutuante arrastável pelo título (mouse, toque ou setas do teclado), com controles para entrar e sair da tela cheia;
 - alto-falante clicável para silenciar ou restaurar o volume;
 - reprodução contínua da fila, ordem aleatória e repetição da música atual;
 - músicas gostadas, favoritas, playlists reordenáveis por arrastar ou por título e preferências de tema;
