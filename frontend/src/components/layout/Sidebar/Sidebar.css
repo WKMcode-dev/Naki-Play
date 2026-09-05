@@ -139,7 +139,9 @@
 @media (max-width: 900px) {
   .sidebar {
     position: fixed;
-    inset: auto 12px 12px;
+    right: calc(12px + var(--safe-right));
+    bottom: calc(12px + var(--safe-bottom));
+    left: calc(12px + var(--safe-left));
     z-index: 20;
     width: auto;
     height: 64px;

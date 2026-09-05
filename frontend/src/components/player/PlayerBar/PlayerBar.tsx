@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import {
   Heart,
   ListMusic,
+  Maximize2,
   Pause,
   Play,
   Repeat2,
   Shuffle,
   SkipBack,
   SkipForward,
+  VolumeX,
   Volume2,
 } from 'lucide-react'
 import type { MediaTrack, RepeatMode } from '../../../types/library'
@@ -20,6 +22,7 @@ interface PlayerBarProps {
   track?: MediaTrack
   volume: number
   onNext: () => void
+  onPlaybackError: () => void
   onPrevious: () => void
   onRepeatChange: () => void
   onShuffleChange: () => void
@@ -36,6 +39,12 @@ function formatTime(value: number) {
   return `${minutes}:${seconds}`
 }
 
+function isVideoTrack(track?: MediaTrack) {
+  return [track?.fileName, track?.filePath, track?.fileUrl]
+    .filter((source): source is string => Boolean(source))
+    .some((source) => /\.(mp4|webm|mov)(?:$|[?#])/i.test(source))
+}
+
 export function PlayerBar({
   isPlaying,
   repeatMode,
@@ -43,6 +52,7 @@ export function PlayerBar({
   track,
   volume,
   onNext,
+  onPlaybackError,
   onPrevious,
   onRepeatChange,
   onShuffleChange,
@@ -51,46 +61,145 @@ export function PlayerBar({
   onToggleLike,
   onVolumeChange,
 }: PlayerBarProps) {
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const mediaRef = useRef<HTMLMediaElement>(null)
+  const videoStageRef = useRef<HTMLDivElement>(null)
+  const lastAudibleVolume = useRef(volume > 0 ? volume : 0.82)
+  const playbackErrorHandler = useRef(onPlaybackError)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [mediaError, setMediaError] = useState<string>()
+  const showsVideo = isVideoTrack(track)
 
   useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !track?.fileUrl) return
+    playbackErrorHandler.current = onPlaybackError
+  }, [onPlaybackError])
 
-    audio.src = track.fileUrl
-    audio.load()
+  useEffect(() => {
+    const media = mediaRef.current
+    if (!media || !track?.fileUrl) return
+
+    media.src = track.fileUrl
+    media.load()
     setCurrentTime(0)
-  }, [track?.fileUrl])
+    setDuration(0)
+    setMediaError(undefined)
 
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio || !track?.fileUrl) return
-    if (isPlaying) {
-      void audio.play().catch(() => undefined)
-    } else {
-      audio.pause()
+    return () => {
+      media.pause()
+      media.removeAttribute('src')
+      media.load()
     }
-  }, [isPlaying, track?.fileUrl])
+  }, [showsVideo, track?.fileUrl])
 
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume
-  }, [volume])
+    const media = mediaRef.current
+    if (!media || !track?.fileUrl) return
+    if (volume > 0) lastAudibleVolume.current = volume
+    media.volume = volume
+    media.muted = volume === 0
+  }, [showsVideo, track?.fileUrl, volume])
+
+  useEffect(() => {
+    const media = mediaRef.current
+    if (!media || !track?.fileUrl) return
+    let cancelled = false
+    if (isPlaying) {
+      void media.play().catch(() => {
+        if (cancelled || mediaRef.current !== media) return
+        setMediaError('Não foi possível reproduzir este formato de mídia.')
+        playbackErrorHandler.current()
+      })
+    } else {
+      media.pause()
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [isPlaying, showsVideo, track?.fileUrl])
+
+  function toggleMuted() {
+    onVolumeChange(volume > 0 ? 0 : lastAudibleVolume.current)
+  }
+
+  async function openFullscreen() {
+    const stage = videoStageRef.current
+    if (!stage?.requestFullscreen) {
+      setMediaError('A tela cheia não está disponível neste dispositivo.')
+      return
+    }
+    try {
+      await stage.requestFullscreen()
+    } catch {
+      setMediaError('Não foi possível abrir o vídeo em tela cheia.')
+    }
+  }
 
   if (!track) return null
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
-    <footer className="player-bar">
-      <audio
-        ref={audioRef}
-        loop={repeatMode === 'one'}
-        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
-        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-        onEnded={onTrackEnded}
-      />
+    <>
+      {showsVideo && (
+        <div className="player-video-stage" ref={videoStageRef}>
+          <video
+            ref={(element) => { mediaRef.current = element }}
+            loop={repeatMode === 'one'}
+            playsInline
+            preload="metadata"
+            onCanPlay={() => setMediaError(undefined)}
+            onEnded={onTrackEnded}
+            onError={() => setMediaError('Este vídeo usa um formato que o dispositivo não conseguiu abrir.')}
+            onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+          />
+          {!isPlaying && (
+            <button className="player-video-stage__toggle" type="button" aria-label="Reproduzir vídeo" onClick={onToggle}>
+              <Play size={34} fill="currentColor" />
+            </button>
+          )}
+          <div className="player-video-stage__controls">
+            <button type="button" aria-label={isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'} onClick={onToggle}>
+              {isPlaying ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}
+            </button>
+            <label>
+              <span className="sr-only">Posição da reprodução do vídeo</span>
+              <input
+                type="range"
+                min="0"
+                max={duration || 100}
+                value={duration ? currentTime : 0}
+                onChange={(event) => {
+                  const value = Number(event.target.value)
+                  setCurrentTime(value)
+                  if (mediaRef.current && duration) mediaRef.current.currentTime = value
+                }}
+              />
+            </label>
+            <button type="button" aria-label={volume > 0 ? 'Silenciar vídeo' : 'Restaurar volume do vídeo'} onClick={toggleMuted}>
+              {volume > 0 ? <Volume2 size={17} /> : <VolumeX size={17} />}
+            </button>
+            <button type="button" aria-label="Exibir vídeo em tela cheia" onClick={() => void openFullscreen()}>
+              <Maximize2 size={17} />
+            </button>
+          </div>
+          {mediaError && <span className="player-video-stage__error" role="alert">{mediaError}</span>}
+        </div>
+      )}
+      <footer className="player-bar">
+      {!showsVideo && (
+        <audio
+          ref={(element) => { mediaRef.current = element }}
+          loop={repeatMode === 'one'}
+          preload="metadata"
+          onCanPlay={() => setMediaError(undefined)}
+          onEnded={onTrackEnded}
+          onError={() => setMediaError('Não foi possível reproduzir este arquivo de áudio.')}
+          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+          onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+        />
+      )}
+      {mediaError && !showsVideo && <span className="player-media-error" role="alert">{mediaError}</span>}
       <div className="player-track">
         <span className="player-track__cover" style={{ background: track.cover }}>{track.title.charAt(0)}</span>
         <span className="player-track__copy">
@@ -139,7 +248,7 @@ export function PlayerBar({
         <div className="player-progress">
           <span>{formatTime(currentTime)}</span>
           <label>
-            <span className="sr-only">Posição da música</span>
+            <span className="sr-only">Posição da reprodução</span>
             <input
               type="range"
               min="0"
@@ -148,7 +257,7 @@ export function PlayerBar({
               onChange={(event) => {
                 const value = Number(event.target.value)
                 setCurrentTime(value)
-                if (audioRef.current && duration) audioRef.current.currentTime = value
+                if (mediaRef.current && duration) mediaRef.current.currentTime = value
               }}
               style={{ '--progress': `${progress}%` } as CSSProperties}
             />
@@ -159,7 +268,9 @@ export function PlayerBar({
 
       <div className="player-extras">
         <button type="button" aria-label="Fila de reprodução"><ListMusic size={16} /></button>
-        <Volume2 size={16} />
+        <button type="button" aria-label={volume > 0 ? 'Silenciar' : 'Restaurar volume'} aria-pressed={volume === 0} onClick={toggleMuted}>
+          {volume > 0 ? <Volume2 size={16} /> : <VolumeX size={16} />}
+        </button>
         <input
           className="volume-input"
           type="range"
@@ -171,6 +282,7 @@ export function PlayerBar({
           onChange={(event) => onVolumeChange(Number(event.target.value))}
         />
       </div>
-    </footer>
+      </footer>
+    </>
   )
 }

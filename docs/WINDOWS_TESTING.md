@@ -18,10 +18,14 @@ Use um vídeo curto próprio, em domínio público ou autorizado.
 - acompanhe progresso e conversão e reproduza o resultado;
 - feche e abra novamente para confirmar a persistência;
 - repita com uma opção MP4;
+- confirme que o vídeo aparece no display, pode ser pausado e abre em tela cheia;
+- clique no alto-falante para silenciar e restaurar o volume;
 - inicie outro download e teste **Cancelar** após o progresso começar;
 - minimize a janela e confirme que o processo continua;
 - desligue a internet e reproduza um item já salvo;
 - teste gostar, favoritar e adicionar a uma playlist.
+- exclua uma faixa, confirme que ela desaparece das playlists e reinicie o aplicativo;
+- instale a atualização por cima de uma versão anterior e confirme que as demais músicas continuam salvas.
 
 ## Diagnóstico
 

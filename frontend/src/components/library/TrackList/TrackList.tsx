@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { ArrowDownAZ, ArrowUpAZ, GripVertical, Heart, ListMinus, ListPlus, MoreHorizontal, Pause, Play, Sparkles } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpAZ, GripVertical, Heart, ListMinus, ListPlus, MoreHorizontal, Pause, Play, Sparkles, Trash2 } from 'lucide-react'
 import type { MediaTrack, Playlist } from '../../../types/library'
 import './TrackList.css'
 
@@ -12,6 +12,7 @@ interface TrackListProps {
   playlists: Playlist[]
   playlistTracks?: MediaTrack[]
   onAddToPlaylist: (playlistId: string, trackId: string) => void
+  onDeleteTrack: (trackId: string) => void | Promise<void>
   onPlay: (trackId: string) => void
   onToggleFavorite: (trackId: string) => void
   onToggleLike: (trackId: string) => void
@@ -36,6 +37,7 @@ export function TrackList({
   playlists,
   playlistTracks,
   onAddToPlaylist,
+  onDeleteTrack,
   onPlay,
   onToggleFavorite,
   onToggleLike,
@@ -251,6 +253,16 @@ export function TrackList({
                     <ListMinus size={14} /> Remover desta playlist
                   </button>
                 )}
+                <button
+                  className="track-menu__delete"
+                  type="button"
+                  onClick={() => {
+                    setOpenMenu(undefined)
+                    void onDeleteTrack(track.id)
+                  }}
+                >
+                  <Trash2 size={14} /> Excluir do dispositivo
+                </button>
               </div>
             )}
           </div>

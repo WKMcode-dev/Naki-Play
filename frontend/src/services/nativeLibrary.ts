@@ -1,5 +1,5 @@
 import { Channel, convertFileSrc, invoke, isTauri } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
+import { confirm as confirmDialog, open } from '@tauri-apps/plugin-dialog'
 import type {
   AppSettings,
   AppSnapshot,
@@ -207,6 +207,21 @@ export async function persistTrackFlag(
   value: boolean,
 ) {
   if (runningInTauri()) await invoke(command, { trackId, value })
+}
+
+export async function confirmTrackDeletion(title: string) {
+  const message = `Excluir “${title}” da biblioteca e apagar a cópia salva pelo Naki?\n\nEla será removida de todas as playlists. O arquivo original usado na importação não será apagado.`
+  if (!runningInTauri()) return window.confirm(message)
+  return confirmDialog(message, {
+    title: 'Excluir música',
+    kind: 'warning',
+    okLabel: 'Excluir',
+    cancelLabel: 'Cancelar',
+  })
+}
+
+export async function persistDeleteTrack(trackId: string) {
+  if (runningInTauri()) await invoke('delete_track', { trackId })
 }
 
 export async function persistSettings(settings: AppSettings): Promise<AppSettings> {

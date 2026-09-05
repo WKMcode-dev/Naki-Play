@@ -20,9 +20,14 @@ Use um vídeo curto que seja seu, de domínio público ou autorizado.
 - espere a conclusão, reproduza a faixa e feche o aplicativo;
 - abra novamente e confirme que a faixa continua na biblioteca;
 - repita com uma opção MP4 disponível;
+- confirme que o vídeo aparece no display, pode ser pausado e abre em tela cheia;
+- toque no alto-falante para silenciar e restaurar o volume;
+- em um aparelho com navegação por três botões, confirme que a barra inferior não cobre o player nem o menu;
 - inicie outro download e teste **Cancelar** depois que o progresso começar;
 - desligue a internet e confirme que um arquivo já salvo continua tocando;
 - teste gostar, favoritar e adicionar a uma playlist.
+- exclua uma faixa, confirme que ela desaparece das playlists e reinicie o aplicativo;
+- instale a atualização por cima de uma versão anterior e confirme que as demais músicas continuam salvas.
 
 ## O que observar
 

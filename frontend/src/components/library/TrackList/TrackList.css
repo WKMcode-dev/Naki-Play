@@ -127,6 +127,18 @@
   color: var(--accent-ink);
 }
 
+.track-menu .track-menu__delete {
+  margin-top: 3px;
+  border-top: 1px solid var(--border-soft);
+  border-radius: 0 0 8px 8px;
+  color: #b42318;
+}
+
+.track-menu .track-menu__delete:hover {
+  color: #8f1d14;
+  background: rgba(180, 35, 24, 0.09);
+}
+
 .track-list__header {
   padding: 0 12px 8px;
   color: #a0969c;

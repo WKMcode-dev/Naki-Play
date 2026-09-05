@@ -12,6 +12,7 @@ pub fn run() {
             commands::library::add_track_to_playlist,
             commands::library::bootstrap_library,
             commands::library::create_playlist,
+            commands::library::delete_track,
             commands::library::download_track_from_url,
             commands::library::import_tracks,
             commands::library::remove_track_from_playlist,

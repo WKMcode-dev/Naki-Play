@@ -4,7 +4,9 @@
 
 O Naki Play é uma biblioteca pessoal para Android e Windows. Ele recebe um link compatível, mostra os dados da mídia, permite escolher MP3 ou MP4 e salva o resultado no armazenamento privado do aplicativo para reprodução offline. Também aceita arquivos que já estejam no dispositivo.
 
-O player mantém uma fila baseada na tela atual, avança automaticamente, oferece ordem aleatória e repetição da música atual. Dentro de playlists, as músicas podem ser reordenadas por arrastar, pelo teclado ou alfabeticamente, e a ordem fica salva no dispositivo.
+O player mantém uma fila baseada na tela atual, avança automaticamente, oferece ordem aleatória, repetição da música atual e mute pelo alto-falante. Vídeos compatíveis aparecem em um display próprio com controles e tela cheia. Dentro de playlists, as músicas podem ser reordenadas por arrastar, pelo teclado ou alfabeticamente, e a ordem fica salva no dispositivo.
+
+Uma faixa pode ser excluída da biblioteca com confirmação. Essa ação remove somente a cópia privada criada pelo Naki Play e suas referências nas playlists; o arquivo original selecionado durante uma importação não é alterado.
 
 A interface usa por padrão uma estética neutra inspirada no Notion, com modos claro, escuro e do sistema. A pessoa pode personalizar as cores; o aplicativo calcula automaticamente texto claro ou escuro para manter o contraste nos controles principais.
 
@@ -49,6 +51,6 @@ O Naki Play não foi projetado para:
 
 ## Plataformas
 
-- **Android 7+:** análise, conversão, biblioteca e player; APK ARM64 de desenvolvimento disponível.
+- **Android 7+:** análise, conversão, biblioteca e player com áreas seguras para barras do sistema; APK ARM64 de desenvolvimento disponível.
 - **Windows x64:** análise, conversão, biblioteca e player; instalador autossuficiente.
 - **Navegador:** demonstração da interface e arquivos temporários da sessão.

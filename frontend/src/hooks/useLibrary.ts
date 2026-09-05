@@ -4,6 +4,7 @@ import {
   bootstrapLibrary,
   cancelExternalDownload,
   chooseAndImportTracks,
+  confirmTrackDeletion,
   defaultSettings,
   downloadDirectTrack,
   downloadExternalMedia,
@@ -11,6 +12,7 @@ import {
   importNativePaths,
   listenForNativeDrops,
   persistAddToPlaylist,
+  persistDeleteTrack,
   persistPlaylist,
   persistPlaylistOrder,
   persistRemoveFromPlaylist,
@@ -75,6 +77,20 @@ function shuffledFromCurrent(trackIds: string[], currentTrackId?: string) {
   return currentTrackId && trackIds.includes(currentTrackId)
     ? [currentTrackId, ...remaining]
     : remaining
+}
+
+function waitForMediaRelease() {
+  return new Promise<void>((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(fallback)
+      resolve()
+    }
+    const fallback = window.setTimeout(finish, 140)
+    window.requestAnimationFrame(() => window.requestAnimationFrame(finish))
+  })
 }
 
 export function useLibrary() {
@@ -272,6 +288,56 @@ export function useLibrary() {
     try {
       await persistTrackFlag('set_track_favorite', trackId, value)
     } catch (reason) {
+      setError(errorMessage(reason))
+    }
+  }
+
+  async function deleteTrack(trackId: string) {
+    const track = tracks.find((item) => item.id === trackId)
+    if (!track) return
+    try {
+      if (!(await confirmTrackDeletion(track.title))) return
+    } catch (reason) {
+      setError(errorMessage(reason))
+      return
+    }
+
+    clearMessages()
+    const wasCurrent = currentTrackId === trackId
+    const wasPlaying = wasCurrent && isPlaying
+    const orderBeforeDeletion = playbackOrder()
+    const deletedIndex = orderBeforeDeletion.indexOf(trackId)
+    const remainingOrder = orderBeforeDeletion.filter((id) => id !== trackId)
+    const nextTrackId = wasCurrent && remainingOrder.length > 0
+      ? remainingOrder[Math.min(Math.max(deletedIndex, 0), remainingOrder.length - 1)]
+      : undefined
+
+    if (wasCurrent) {
+      setIsPlaying(false)
+      setCurrentTrackId(undefined)
+      await waitForMediaRelease()
+    }
+
+    try {
+      await persistDeleteTrack(trackId)
+      if (track.fileUrl?.startsWith('blob:')) URL.revokeObjectURL(track.fileUrl)
+      setTracks((current) => current.filter((item) => item.id !== trackId))
+      setPlaylists((current) => current.map((playlist) => ({
+        ...playlist,
+        trackIds: playlist.trackIds.filter((id) => id !== trackId),
+      })))
+      setPlaybackQueue((current) => current.filter((id) => id !== trackId))
+      shuffledQueue.current = shuffledQueue.current.filter((id) => id !== trackId)
+      if (wasCurrent) {
+        setCurrentTrackId(nextTrackId)
+        setIsPlaying(wasPlaying && Boolean(nextTrackId))
+      }
+      setNotice('Música excluída deste dispositivo.')
+    } catch (reason) {
+      if (wasCurrent) {
+        setCurrentTrackId(trackId)
+        setIsPlaying(wasPlaying)
+      }
       setError(errorMessage(reason))
     }
   }
@@ -525,6 +591,7 @@ export function useLibrary() {
     createPlaylist,
     cycleRepeatMode,
     currentTrack,
+    deleteTrack,
     downloadFromUrl,
     downloadAnalyzedMedia,
     downloadStatus,

@@ -183,6 +183,7 @@ function App() {
                   playlists={library.playlists}
                   tracks={visibleTracks.slice(0, 4)}
                   onAddToPlaylist={(playlistId, trackId) => void library.addToPlaylist(playlistId, trackId)}
+                  onDeleteTrack={library.deleteTrack}
                   onPlay={(trackId) => library.playTrack(trackId, visibleTracks.slice(0, 4).map((track) => track.id))}
                   onToggleFavorite={(trackId) => void library.toggleFavorite(trackId)}
                   onToggleLike={(trackId) => void library.toggleLike(trackId)}
@@ -226,6 +227,7 @@ function App() {
                 playlistTracks={currentPlaylistTracks}
                 tracks={visibleTracks}
                 onAddToPlaylist={(playlistId, trackId) => void library.addToPlaylist(playlistId, trackId)}
+                onDeleteTrack={library.deleteTrack}
                 onPlay={(trackId) => library.playTrack(trackId, visibleTracks.map((track) => track.id))}
                 onRemoveFromPlaylist={(playlistId, trackId) => void library.removeFromPlaylist(playlistId, trackId)}
                 onReorderPlaylist={currentPlaylistId
@@ -252,6 +254,7 @@ function App() {
           track={library.currentTrack}
           volume={library.settings.volume}
           onNext={library.playNext}
+          onPlaybackError={() => library.setIsPlaying(false)}
           onPrevious={library.playPrevious}
           onRepeatChange={library.cycleRepeatMode}
           onShuffleChange={library.toggleShuffle}

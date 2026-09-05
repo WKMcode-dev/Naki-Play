@@ -1,12 +1,16 @@
 use crate::database::{
     app_paths, insert_track, load_snapshot, open_database, AppSnapshot, PlaylistRecord, TrackRecord,
 };
+use rusqlite::{Connection, OptionalExtension};
 use serde::Deserialize;
 use std::{
     collections::HashSet,
+    ffi::{OsStr, OsString},
     fs,
     io::{self, Write},
-    path::Path,
+    path::{Path, PathBuf},
+    thread,
+    time::Duration,
 };
 use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
 use uuid::Uuid;
@@ -25,7 +29,19 @@ pub struct ImportRequest {
 
 #[tauri::command]
 pub fn bootstrap_library(app: tauri::AppHandle) -> Result<AppSnapshot, String> {
-    load_snapshot(&app)
+    let paths = app_paths(&app)?;
+    let snapshot = load_snapshot(&app)?;
+    let live_file_names = snapshot
+        .tracks
+        .iter()
+        .filter_map(|track| {
+            Path::new(&track.file_path)
+                .file_name()
+                .map(OsStr::to_os_string)
+        })
+        .collect::<HashSet<_>>();
+    reconcile_deleting_files(&paths.media, &live_file_names);
+    Ok(snapshot)
 }
 
 fn clean_file_name(value: &str) -> String {
@@ -326,6 +342,160 @@ pub fn set_track_favorite(
     Ok(())
 }
 
+fn managed_media_file(media_root: &Path, file_path: &Path) -> Result<Option<PathBuf>, String> {
+    let metadata = match fs::metadata(file_path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(format!(
+                "não foi possível verificar o arquivo que será excluído: {error}"
+            ));
+        }
+    };
+    if !metadata.is_file() {
+        return Err("a mídia salva não é um arquivo regular e não pode ser excluída".to_string());
+    }
+
+    let canonical_root = fs::canonicalize(media_root)
+        .map_err(|error| format!("não foi possível validar a biblioteca local: {error}"))?;
+    let canonical_file = fs::canonicalize(file_path)
+        .map_err(|error| format!("não foi possível validar o arquivo salvo: {error}"))?;
+    if !canonical_file.starts_with(&canonical_root) {
+        return Err(
+            "a exclusão foi recusada porque o arquivo não pertence à biblioteca privada do Naki"
+                .to_string(),
+        );
+    }
+
+    Ok(Some(canonical_file))
+}
+
+fn reconcile_deleting_files(media_root: &Path, live_file_names: &HashSet<OsString>) {
+    let Ok(entries) = fs::read_dir(media_root) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let is_pending_file = path
+            .extension()
+            .is_some_and(|extension| extension == "deleting")
+            && entry.file_type().is_ok_and(|file_type| file_type.is_file());
+        if !is_pending_file {
+            continue;
+        }
+        let Some(pending_name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        let Some(original_name) = pending_name
+            .strip_prefix('.')
+            .and_then(|name| name.strip_suffix(".deleting"))
+            .filter(|name| !name.is_empty())
+        else {
+            continue;
+        };
+        let original_path = media_root.join(original_name);
+        if live_file_names.contains(OsStr::new(original_name)) && !original_path.exists() {
+            let _ = rename_with_release_retry(&path, &original_path);
+        } else {
+            let _ = fs::remove_file(path);
+        }
+    }
+}
+
+fn rename_with_release_retry(source: &Path, destination: &Path) -> io::Result<()> {
+    const RETRIES: usize = 4;
+    for attempt in 0..RETRIES {
+        match fs::rename(source, destination) {
+            Ok(()) => return Ok(()),
+            Err(error)
+                if error.kind() == io::ErrorKind::PermissionDenied && attempt + 1 < RETRIES =>
+            {
+                thread::sleep(Duration::from_millis(45));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    unreachable!("the rename retry loop always returns")
+}
+
+fn delete_track_from_storage(
+    connection: &mut Connection,
+    media_root: &Path,
+    track_id: &str,
+) -> Result<(), String> {
+    let stored_path = connection
+        .query_row(
+            "SELECT file_path FROM tracks WHERE id = ?1",
+            [track_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .map_err(|error| format!("não foi possível localizar a música: {error}"))?
+        .ok_or_else(|| "essa música já não existe na biblioteca".to_string())?;
+
+    let managed_file = managed_media_file(media_root, Path::new(&stored_path))?;
+    let pending_path = managed_file
+        .as_ref()
+        .map(|file_path| {
+            file_path
+                .file_name()
+                .map(|name| media_root.join(format!(".{}.deleting", name.to_string_lossy())))
+                .ok_or_else(|| "o nome do arquivo salvo é inválido".to_string())
+        })
+        .transpose()?;
+
+    if let (Some(file_path), Some(pending_path)) = (&managed_file, &pending_path) {
+        rename_with_release_retry(file_path, pending_path).map_err(|error| {
+            format!("não foi possível liberar o arquivo para exclusão: {error}")
+        })?;
+    }
+
+    let database_result = (|| -> Result<(), String> {
+        let transaction = connection
+            .transaction()
+            .map_err(|error| format!("não foi possível iniciar a exclusão: {error}"))?;
+        let affected_rows = transaction
+            .execute("DELETE FROM tracks WHERE id = ?1", [track_id])
+            .map_err(|error| format!("não foi possível excluir a música: {error}"))?;
+        if affected_rows != 1 {
+            return Err("essa música já não existe na biblioteca".to_string());
+        }
+        transaction
+            .commit()
+            .map_err(|error| format!("não foi possível salvar a exclusão: {error}"))?;
+        Ok(())
+    })();
+
+    if let Err(error) = database_result {
+        if let (Some(file_path), Some(pending_path)) = (&managed_file, &pending_path) {
+            if let Err(restore_error) = rename_with_release_retry(pending_path, file_path) {
+                return Err(format!(
+                    "{error}. A cópia da mídia também não pôde ser restaurada automaticamente: {restore_error}"
+                ));
+            }
+        }
+        return Err(error);
+    }
+
+    if let Some(pending_path) = pending_path {
+        if let Err(error) = fs::remove_file(&pending_path) {
+            eprintln!(
+                "aviso: a mídia excluída ficou pendente de limpeza em {}: {error}",
+                pending_path.display()
+            );
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_track(app: tauri::AppHandle, track_id: String) -> Result<(), String> {
+    let paths = app_paths(&app)?;
+    let mut connection = open_database(&app)?;
+    delete_track_from_storage(&mut connection, &paths.media, &track_id)
+}
+
 #[tauri::command]
 pub fn create_playlist(app: tauri::AppHandle, name: String) -> Result<PlaylistRecord, String> {
     let name = name.trim();
@@ -442,10 +612,61 @@ pub fn supported_media_extensions() -> Vec<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::playlist_order_is_valid;
+    use super::{
+        delete_track_from_storage, managed_media_file, playlist_order_is_valid,
+        reconcile_deleting_files,
+    };
+    use rusqlite::Connection;
+    use std::{ffi::OsString, fs, path::PathBuf};
+    use uuid::Uuid;
 
     fn ids(values: &[&str]) -> Vec<String> {
         values.iter().map(|value| (*value).to_string()).collect()
+    }
+
+    fn delete_test_root() -> (PathBuf, PathBuf) {
+        let test_root = std::env::temp_dir().join(format!("naki-play-delete-{}", Uuid::new_v4()));
+        let media_root = test_root.join("media");
+        fs::create_dir_all(&media_root).expect("create media test folder");
+        (test_root, media_root)
+    }
+
+    fn delete_test_database(track_path: &std::path::Path) -> Connection {
+        let connection = Connection::open_in_memory().expect("open test database");
+        connection
+            .execute_batch(
+                "PRAGMA foreign_keys = ON;
+                 CREATE TABLE tracks (id TEXT PRIMARY KEY, file_path TEXT NOT NULL);
+                 CREATE TABLE playlists (id TEXT PRIMARY KEY);
+                 CREATE TABLE playlist_tracks (
+                   playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+                   track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+                   PRIMARY KEY (playlist_id, track_id)
+                 );
+                 INSERT INTO playlists (id) VALUES ('playlist');",
+            )
+            .expect("create test schema");
+        connection
+            .execute(
+                "INSERT INTO tracks (id, file_path) VALUES ('track', ?1)",
+                [track_path.to_string_lossy().as_ref()],
+            )
+            .expect("insert test track");
+        connection
+            .execute(
+                "INSERT INTO playlist_tracks (playlist_id, track_id) VALUES ('playlist', 'track')",
+                [],
+            )
+            .expect("insert test playlist track");
+        connection
+    }
+
+    fn row_count(connection: &Connection, table: &str) -> i64 {
+        connection
+            .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+                row.get(0)
+            })
+            .expect("count test rows")
     }
 
     #[test]
@@ -466,5 +687,131 @@ mod tests {
             &ids(&["a", "b", "c"]),
             &ids(&["a", "a", "c"]),
         ));
+    }
+
+    #[test]
+    fn only_accepts_existing_files_inside_the_private_media_folder() {
+        let (test_root, media_root) = delete_test_root();
+        let managed_file = media_root.join("inside.mp3");
+        let external_file = test_root.join("outside.mp3");
+        fs::write(&managed_file, b"managed").expect("create managed test file");
+        fs::write(&external_file, b"external").expect("create external test file");
+
+        assert!(managed_media_file(&media_root, &managed_file)
+            .expect("managed path validation")
+            .is_some());
+        assert!(managed_media_file(&media_root, &external_file).is_err());
+        assert!(
+            managed_media_file(&media_root, &media_root.join("missing.mp3"))
+                .expect("missing path validation")
+                .is_none()
+        );
+
+        fs::remove_file(managed_file).expect("remove managed test file");
+        fs::remove_file(external_file).expect("remove external test file");
+        fs::remove_dir(media_root).expect("remove media test folder");
+        fs::remove_dir(test_root).expect("remove test folder");
+    }
+
+    #[test]
+    fn deletes_the_private_file_track_and_playlist_links() {
+        let (test_root, media_root) = delete_test_root();
+        let managed_file = media_root.join("track.mp3");
+        fs::write(&managed_file, b"managed").expect("create managed test file");
+        let mut connection = delete_test_database(&managed_file);
+
+        delete_track_from_storage(&mut connection, &media_root, "track")
+            .expect("delete managed track");
+
+        assert!(!managed_file.exists());
+        assert_eq!(row_count(&connection, "tracks"), 0);
+        assert_eq!(row_count(&connection, "playlist_tracks"), 0);
+        fs::remove_dir(media_root).expect("remove media test folder");
+        fs::remove_dir(test_root).expect("remove test folder");
+    }
+
+    #[test]
+    fn removes_metadata_when_the_private_file_is_already_missing() {
+        let (test_root, media_root) = delete_test_root();
+        let mut connection = delete_test_database(&media_root.join("missing.mp3"));
+
+        delete_track_from_storage(&mut connection, &media_root, "track")
+            .expect("delete missing track metadata");
+
+        assert_eq!(row_count(&connection, "tracks"), 0);
+        assert_eq!(row_count(&connection, "playlist_tracks"), 0);
+        fs::remove_dir(media_root).expect("remove media test folder");
+        fs::remove_dir(test_root).expect("remove test folder");
+    }
+
+    #[test]
+    fn refuses_an_external_file_and_keeps_its_database_row() {
+        let (test_root, media_root) = delete_test_root();
+        let external_file = test_root.join("external.mp3");
+        fs::write(&external_file, b"external").expect("create external test file");
+        let mut connection = delete_test_database(&external_file);
+
+        assert!(delete_track_from_storage(&mut connection, &media_root, "track").is_err());
+        assert!(external_file.exists());
+        assert_eq!(row_count(&connection, "tracks"), 1);
+        assert_eq!(row_count(&connection, "playlist_tracks"), 1);
+        fs::remove_file(external_file).expect("remove external test file");
+        fs::remove_dir(media_root).expect("remove media test folder");
+        fs::remove_dir(test_root).expect("remove test folder");
+    }
+
+    #[test]
+    fn restores_the_file_when_the_database_rejects_the_delete() {
+        let (test_root, media_root) = delete_test_root();
+        let managed_file = media_root.join("track.mp3");
+        fs::write(&managed_file, b"managed").expect("create managed test file");
+        let mut connection = delete_test_database(&managed_file);
+        connection
+            .execute_batch(
+                "CREATE TRIGGER reject_track_delete BEFORE DELETE ON tracks
+                 BEGIN SELECT RAISE(ABORT, 'blocked'); END;",
+            )
+            .expect("create rejection trigger");
+
+        assert!(delete_track_from_storage(&mut connection, &media_root, "track").is_err());
+        assert!(managed_file.exists());
+        assert_eq!(row_count(&connection, "tracks"), 1);
+        fs::remove_file(managed_file).expect("remove managed test file");
+        fs::remove_dir(media_root).expect("remove media test folder");
+        fs::remove_dir(test_root).expect("remove test folder");
+    }
+
+    #[test]
+    fn cleans_only_pending_deletion_files() {
+        let (test_root, media_root) = delete_test_root();
+        let pending_file = media_root.join(".removed.mp3.deleting");
+        let regular_file = media_root.join("keep.mp3");
+        fs::write(&pending_file, b"pending").expect("create pending test file");
+        fs::write(&regular_file, b"regular").expect("create regular test file");
+
+        reconcile_deleting_files(&media_root, &std::collections::HashSet::new());
+
+        assert!(!pending_file.exists());
+        assert!(regular_file.exists());
+        fs::remove_file(regular_file).expect("remove regular test file");
+        fs::remove_dir(media_root).expect("remove media test folder");
+        fs::remove_dir(test_root).expect("remove test folder");
+    }
+
+    #[test]
+    fn restores_a_pending_file_when_its_database_record_still_exists() {
+        let (test_root, media_root) = delete_test_root();
+        let original_file = media_root.join("track.mp3");
+        let pending_file = media_root.join(".track.mp3.deleting");
+        fs::write(&pending_file, b"pending").expect("create pending test file");
+        let live_file_names = [OsString::from("track.mp3")].into_iter().collect();
+
+        reconcile_deleting_files(&media_root, &live_file_names);
+
+        assert!(!pending_file.exists());
+        assert!(original_file.exists());
+        fs::remove_file(original_file).expect("remove restored test file");
+        fs::remove_dir(media_root).expect("remove media test folder");
+        fs::remove_dir(test_root).expect("remove test folder");
     }
 }

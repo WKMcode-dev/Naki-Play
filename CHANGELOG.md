@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## [0.4.0] - 2026-09-05
+
+### Adicionado
+
+- reprodução visual de MP4, WEBM e MOV, com controles próprios e tela cheia;
+- exclusão segura da cópia privada de uma música ou vídeo, incluindo referências em playlists;
+- testes de consistência entre arquivo, banco SQLite e exclusão em cascata.
+
+### Corrigido
+
+- o ícone de alto-falante agora silencia e restaura o volume no desktop e no celular;
+- o volume permanece correto ao alternar entre elementos de áudio e vídeo;
+- os controles móveis respeitam barras do sistema, recortes de tela e navegação Android com três botões;
+- o teclado do Android continua redimensionando a interface mesmo com o tratamento de áreas seguras.
+
 ## [0.3.1] - 2026-09-02
 
 ### Corrigido
@@ -59,6 +74,7 @@ Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 - yt-dlp, Python e FFmpeg empacotados no Android;
 - documentação de arquitetura, escopo e testes por plataforma.
 
+[0.4.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.4.0
 [0.3.1]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.1
 [0.3.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.3.0
 [0.2.0]: https://github.com/WKMcode-dev/Naki-Play/releases/tag/v0.2.0
