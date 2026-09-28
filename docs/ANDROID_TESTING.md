@@ -36,7 +36,7 @@ Use um vídeo curto que seja seu, de domínio público ou autorizado.
 - deixe o app aberto durante download e conversão;
 - vídeos longos ou 4K consomem bastante espaço, bateria e memória;
 - algumas fontes podem não oferecer todas as resoluções;
-- se um site mudar e a análise parar de funcionar, conecte o aparelho à internet e tente novamente; o extrator verifica atualizações semanalmente;
+- se um site mudar e a análise parar de funcionar, conecte o aparelho à internet e tente novamente; o extrator verifica atualizações diariamente, com intervalo mínimo de 15 minutos após falhas;
 - guarde o link e a mensagem exibida ao registrar um problema, mas nunca publique links privados ou credenciais.
 
 ## HTTP 403 e versão 0.5.1 de teste
@@ -46,6 +46,13 @@ Um 403 significa que a origem recusou uma solicitação; não identifica sozinho
 A versão 0.5.1 corrige a periodicidade da atualização estável do extrator e exibe a versão utilizada no diagnóstico. Não é uma correção confirmada para todos os 403. Para validar, instalar por cima, manter o app aberto, repetir o link autorizado que falhou e registrar a mensagem completa, versão Android/Naki e se a falha ocorre na análise ou no download. Não enviar cookies, senhas ou endereços assinados de mídia.
 
 Referência do motor: https://github.com/yausername/youtubedl-android/tree/0.18.1
+
+## Regressões de download
+
+- `node --test scripts/download-output.test.mjs scripts/download-fragments.test.mjs` usa mídia sintética local no Windows: reproduz o fallback WebM que não gerava MP4, verifica a conversão corrigida, a extração MP3 e a rejeição de fragmentos ausentes. Exige os motores preparados com `pnpm desktop:prepare`. Não valida acesso ao YouTube nem a execução dos binários Android.
+- `DownloadSupportTest` cobre diagnósticos de rede, atualização, JavaScript, formato indisponível, acesso restrito e inicialização. Execute `gradlew.bat :tauri-plugin-naki-media:testDebugUnitTest` no projeto Android gerado.
+- No aparelho, repetir uma fonte autorizada cujo formato combinado seja WebM, selecionar MP4 e confirmar conclusão, áudio e vídeo. A conversão pode consumir mais tempo e bateria.
+- Para os relatos de música que não baixa, registrar versão do APK, versão do Android, etapa da falha e os detalhes de suporte. A correção do fallback MP4 não comprova a resolução desses relatos.
 
 ## Antes de entregar ou publicar
 

@@ -2,6 +2,27 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## 0.5.3 — Player de áudio nativo Android (candidata de teste)
+
+- Corrige a saída MP4 no Android quando a origem fornece um fluxo combinado WebM; o arquivo passa pela conversão necessária antes de entrar na biblioteca.
+- Diagnósticos distinguem problemas de JavaScript do extrator, formato indisponível, acesso restrito e inicialização do motor, incluindo causas internas sem expor links assinados.
+- Músicas no Android passam a usar Media3/ExoPlayer lendo a cópia privada diretamente, sem o transporte de arquivos do WebView.
+- Serviço de mídia com fila, repetição da faixa atual, aleatório, foco de áudio, pausa ao desconectar fones e controles do sistema; projetado para continuar com a tela apagada.
+- Inspeção das faixas reais separa áudio de vídeo, inclusive WebM apenas de áudio e arquivos da biblioteca antiga. Vídeos mantêm o player visual; playlists mistas aguardam a interface no limite entre música e vídeo.
+- Retorno ao aplicativo recupera a sessão em andamento. Alterar volume, metadados ou ordem não deve reiniciar a música; exclusão aguarda a liberação do arquivo pelo serviço.
+- Downloads Android e Windows abortam quando um fragmento está indisponível, em vez de aceitar esse caso como um arquivo completo.
+- Mesma identificação do aplicativo e mesmo banco: não há limpeza nem migração destrutiva da biblioteca.
+- **Validação em dispositivo ainda pendente.** Testes de lógica/integração simulada passaram e testes instrumentados compilam. O emulador local encerrou antes do boot; não foi confirmada ainda a reprodução integral no Android afetado. Detalhes em `docs/PLAYBACK_AUDIT.md`.
+
+## 0.5.2 — Importação Android e diagnóstico de links (teste)
+
+- Reconhecimento do formato real, inclusive arquivos com extensão incorreta; aliases M4A corrigidos.
+- Android copia arquivos de provedores pelo fluxo nativo e prepara áudio Opus/Vorbis sem vídeo em AAC/M4A, offline, preservando a origem.
+- Importação em lote relata falhas por arquivo e mantém os sucessos visíveis; limpeza de temporários e proteção contra importação duplicada por arrastar.
+- Normalização de links compartilhados, YouTube Music, Shorts e links curtos; diagnóstico específico para DNS/conexão e detalhes técnicos recolhidos.
+- Erros de reprodução distinguem autoplay, leitura e codec. Download direto valida bytes e limita o recebimento sem carregar todo o arquivo na memória.
+- Matriz de testes e limitações em `docs/IMPORT_COMPATIBILITY.md`. A execução nativa e as redes de aparelhos reais ainda precisam de confirmação; nenhum link tem sucesso universal garantido.
+
 ## [0.5.1] - 2026-09-05 — Teste Android
 
 - corrige a verificação de atualização do extrator, que antes só acontecia na inicialização;

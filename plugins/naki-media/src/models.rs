@@ -1,6 +1,20 @@
 use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
 
+#[derive(Debug, Serialize)]
+pub struct ImportFileRequest {
+  pub source: String,
+  pub destination: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportFileResponse {
+  pub name: String,
+  pub duration_seconds: i64,
+  pub converted: bool,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnalyzeRequest {

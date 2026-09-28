@@ -76,7 +76,11 @@ export function MediaDownloadCard({
           <label>
             <Link2 size={16} />
             <input
-              type="url"
+              type="text"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={url}
               placeholder="https://www.youtube.com/watch?v=…"
               aria-label="Link da música ou vídeo"
@@ -170,8 +174,12 @@ export function MediaDownloadCard({
       )}
 
       {error && <div className="media-download__error" role="alert">
-        <strong>O download não foi concluído</strong>
-        <p>{error}</p>
+        <strong>{analysis ? 'O download não foi concluído' : 'Não foi possível analisar o link'}</strong>
+        <p>{error.split('\n')[0]}</p>
+        {error.includes('\n') && <details>
+          <summary>Detalhes para suporte</summary>
+          <p>{error.split('\n').slice(1).join('\n')}</p>
+        </details>}
       </div>}
       <p className="media-download__note">
         {isAvailable

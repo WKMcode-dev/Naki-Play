@@ -153,6 +153,15 @@ function App() {
         )}
 
         <main className="app__content">
+          {library.activeView === 'downloads' && library.importFailures.length > 0 && (
+            <section className="media-download__error" role="alert" aria-label="Arquivos não importados">
+              <strong>Alguns arquivos não foram importados</strong>
+              <p>Os que deram certo já estão na biblioteca. Os originais não foram alterados.</p>
+              <ul>{library.importFailures.map((failure, index) => (
+                <li key={index}><strong>{failure.name || `Arquivo ${index + 1}`}</strong>: {failure.error}</li>
+              ))}</ul>
+            </section>
+          )}
           {library.activeView === 'library' && (
             <section className="catalog-playlists" aria-label="Suas playlists">
               <h2>Suas playlists</h2>
@@ -271,6 +280,7 @@ function App() {
         </main>
 
         <PlayerBar
+          nativeAudio={library.nativeAudio}
           isPlaying={library.isPlaying}
           repeatMode={library.settings.repeatMode}
           shuffleEnabled={library.settings.shuffleEnabled}

@@ -1,6 +1,8 @@
 package com.nakiplay.media
 
 import android.app.Activity
+import android.content.Context
+import android.net.ConnectivityManager
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import app.tauri.annotation.Command
@@ -39,6 +41,12 @@ class CancelArgs {
     lateinit var jobId: String
 }
 
+@InvokeArg
+class ImportFileArgs {
+    lateinit var source: String
+    lateinit var destination: String
+}
+
 data class MediaFormatChoice(
     val id: String,
     val kind: String,
@@ -68,6 +76,10 @@ data class DownloadResponse(
 
 @TauriPlugin
 class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
+    private val audioBridge by lazy { NativeAudioBridge(activity) }
+
+    @Command
+    fun audioCommand(invoke: Invoke) = audioBridge.execute(invoke)
     // Serialize engine use so an update cannot replace it during another download.
     private val worker = Executors.newSingleThreadExecutor()
     private var lastUpdateAttempt = 0L
@@ -75,6 +87,23 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Volatile
     private var initialized = false
+
+    private fun checkNetwork() {
+        val manager = activity.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        check(manager.activeNetwork != null) { "NAKI_OFFLINE" }
+    }
+
+    @Command
+    fun importFile(invoke: Invoke) {
+        val args = invoke.parseArgs(ImportFileArgs::class.java)
+        worker.execute {
+            try {
+                invoke.resolveObject(LocalMediaImport(activity.applicationContext).copy(args.source, args.destination))
+            } catch (error: Exception) {
+                invoke.reject(error.message ?: "Não foi possível importar este arquivo.")
+            }
+        }
+    }
 
     @Synchronized
     private fun ensureInitialized() {
@@ -102,7 +131,8 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     private fun failure(error: Exception): String = DownloadSupport.failure(
-        error.message ?: error.javaClass.simpleName,
+        generateSequence<Throwable>(error) { it.cause }.take(8)
+            .map { it.message ?: it.javaClass.simpleName }.distinct().joinToString("\n"),
         runCatching { YoutubeDL.getInstance().versionName(activity.applicationContext) }.getOrNull(),
         updateFailed,
     )
@@ -196,12 +226,14 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
         val args = invoke.parseArgs(AnalyzeArgs::class.java)
         worker.execute {
             try {
-                ensureInitialized()
                 val url = validateUrl(args.url)
+                checkNetwork()
+                ensureInitialized()
                 val request = YoutubeDLRequest(url)
                     .addOption("--no-playlist")
                     .addOption("--socket-timeout", "20")
                     .addOption("--retries", "2")
+                    .addOption("--extractor-retries", "1")
                 val info = YoutubeDL.getInstance().getInfo(request)
                 invoke.resolveObject(
                     MediaAnalysis(
@@ -227,6 +259,7 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
         worker.execute {
             try {
                 sendPreparing(args, "Conferindo o motor de download…")
+                checkNetwork()
                 ensureInitialized()
                 val url = validateUrl(args.url)
                 val match = Regex("^(audio|video)-(\\d+)$").matchEntire(args.optionId)
@@ -251,6 +284,8 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
                     .addOption("--socket-timeout", "20")
                     .addOption("--retries", "2")
                     .addOption("--fragment-retries", "2")
+                    .addOption("--abort-on-unavailable-fragments")
+                    .addOption("--extractor-retries", "1")
                     .addOption("--embed-metadata")
                     .addOption("-o", "${destination.absolutePath}.%(ext)s")
 
@@ -270,10 +305,12 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
                             "bestvideo[height<=${quality}][ext=mp4]+bestaudio[ext=m4a]/best[height<=${quality}][ext=mp4]/best[height<=${quality}]/best[ext=mp4]/best",
                         )
                         .addOption("--merge-output-format", "mp4")
+                        // A combined fallback stream skips merging; convert it if it is not MP4.
+                        .addOption("--recode-video", "mp4")
                 }
 
                 YoutubeDL.getInstance().execute(request, args.jobId) { progress, eta, line ->
-                    if (line.contains("Merger") || line.contains("ExtractAudio")) {
+                    if (line.contains("Merger") || line.contains("ExtractAudio") || line.contains("VideoConvertor")) {
                         sendConverting(args)
                     } else {
                         sendProgress(args, progress, eta, line)
@@ -311,6 +348,7 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     override fun onDestroy(activity: AppCompatActivity) {
+        audioBridge.destroy()
         worker.shutdownNow()
         super.onDestroy(activity)
     }

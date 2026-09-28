@@ -20,16 +20,9 @@ pub struct MediaDownloadSelection {
     pub confirmed_authorized: bool,
 }
 
+#[cfg(test)]
 fn validate_url(value: &str) -> Result<(), String> {
-    let parsed = reqwest::Url::parse(value.trim())
-        .map_err(|_| "cole um link válido começando com http:// ou https://".to_string())?;
-    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
-        return Err("somente links http:// e https:// são aceitos".to_string());
-    }
-    if !parsed.username().is_empty() || parsed.password().is_some() {
-        return Err("links com usuário ou senha não são aceitos".to_string());
-    }
-    Ok(())
+    super::media_input::normalize_url(value).map(|_| ())
 }
 
 fn display_file_name(title: &str, extension: &str) -> String {
@@ -67,7 +60,7 @@ pub async fn analyze_external_media(
     app: tauri::AppHandle,
     url: String,
 ) -> Result<MediaAnalysis, String> {
-    validate_url(&url)?;
+    let url = super::media_input::normalize_url(&url)?;
     tauri::async_runtime::spawn_blocking(move || {
         app.naki_media()
             .analyze(AnalyzeRequest { url })
@@ -80,10 +73,10 @@ pub async fn analyze_external_media(
 #[tauri::command]
 pub async fn download_external_media(
     app: tauri::AppHandle,
-    selection: MediaDownloadSelection,
+    mut selection: MediaDownloadSelection,
     on_event: Channel<DownloadEvent>,
 ) -> Result<TrackRecord, String> {
-    validate_url(&selection.url)?;
+    selection.url = super::media_input::normalize_url(&selection.url)?;
     if !selection.confirmed_authorized {
         return Err("confirme que você possui autorização para salvar esse conteúdo".to_string());
     }
@@ -198,7 +191,7 @@ mod tests {
 
     #[test]
     fn accepts_http_urls_with_a_host() {
-        assert!(validate_url("https://www.youtube.com/watch?v=example").is_ok());
+        assert!(validate_url("https://www.youtube.com/watch?v=o3-Izz60iTQ").is_ok());
         assert!(validate_url("http://example.com/media").is_ok());
     }
 
@@ -211,7 +204,10 @@ mod tests {
 
     #[test]
     fn creates_a_safe_display_name() {
-        assert_eq!(display_file_name(" Minha\nMúsica ", "mp3"), "MinhaMúsica.mp3");
+        assert_eq!(
+            display_file_name(" Minha\nMúsica ", "mp3"),
+            "MinhaMúsica.mp3"
+        );
         assert_eq!(display_file_name("\n", "mp4"), "Mídia baixada.mp4");
     }
 }

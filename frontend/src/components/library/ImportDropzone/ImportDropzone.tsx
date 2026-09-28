@@ -26,7 +26,8 @@ export function ImportDropzone({ isBusy, isNative, onImport, onPick }: ImportDro
   function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
     setIsDragging(false)
-    handleFiles(event.dataTransfer.files)
+    // Native drops are handled by Tauri and saved persistently, never as blob-only tracks.
+    if (!isNative && !isBusy) handleFiles(event.dataTransfer.files)
   }
 
   function pickFiles() {

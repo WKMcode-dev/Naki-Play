@@ -25,6 +25,12 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct NakiMedia<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> NakiMedia<R> {
+  pub fn audio_command(&self, payload: serde_json::Value) -> crate::Result<serde_json::Value> {
+    self.0.run_mobile_plugin("audioCommand", payload).map_err(Into::into)
+  }
+  pub fn import_file(&self, payload: ImportFileRequest) -> crate::Result<ImportFileResponse> {
+    self.0.run_mobile_plugin("importFile", payload).map_err(Into::into)
+  }
   pub fn analyze(&self, payload: AnalyzeRequest) -> crate::Result<MediaAnalysis> {
     self.0.run_mobile_plugin("analyze", payload).map_err(Into::into)
   }

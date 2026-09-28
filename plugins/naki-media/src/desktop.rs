@@ -287,6 +287,7 @@ impl<R: Runtime> NakiMedia<R> {
         "--newline",
         "--no-mtime",
         "--no-warnings",
+        "--abort-on-unavailable-fragments",
         "--embed-metadata",
         "--progress-template",
         "download:NAKI_PROGRESS:%(progress._percent_str)s|%(progress.eta)s",

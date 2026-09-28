@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useAndroidAudio } from './useAndroidAudio'
 import {
   analyzeExternalMedia,
   bootstrapLibrary,
@@ -22,6 +23,7 @@ import {
   persistSettings,
   persistTrackFlag,
   runningInTauri,
+  type ImportReport,
 } from '../services/nativeLibrary'
 import type {
   AppSettings,
@@ -112,6 +114,8 @@ export function useLibrary() {
   const [error, setError] = useState<string>()
   const [mediaAnalysis, setMediaAnalysis] = useState<ExternalMediaAnalysis>()
   const [downloadError, setDownloadError] = useState<string>()
+  const [importFailures, setImportFailures] = useState<ImportReport['failures']>([])
+  const importPending = useRef(false)
   const [downloadStatus, setDownloadStatus] = useState<MediaDownloadStatus>({
     stage: 'idle',
     progress: 0,
@@ -157,6 +161,12 @@ export function useLibrary() {
     [currentTrackId, tracks],
   )
 
+  const nativeAudio = useAndroidAudio({
+    tracks, queueIds: playbackQueue.length ? playbackQueue : tracks.map(track => track.id),
+    currentId: currentTrackId, playing: isPlaying, libraryReady: isReady, settings,
+    onTrack: setCurrentTrackId, onPlaying: setIsPlaying, onQueue: setPlaybackQueue,
+  })
+
   function clearMessages() {
     setError(undefined)
     setNotice(undefined)
@@ -172,17 +182,30 @@ export function useLibrary() {
     setNotice(`${imported.length} ${imported.length === 1 ? 'música adicionada' : 'músicas adicionadas'} à biblioteca`)
   }, [])
 
+  const acceptImportReport = useCallback((report: ImportReport) => {
+    acceptImportedTracks(report.tracks)
+    setImportFailures(report.failures)
+    if (report.failures.length) {
+      setActiveView('downloads')
+      setError(`${report.failures.length} arquivo(s) não importado(s). Veja os detalhes em Arquivos.`)
+    }
+  }, [acceptImportedTracks])
+
   const importPaths = useCallback(async (paths: string[]) => {
+    if (importPending.current) return
+    importPending.current = true
     clearMessages()
+    setImportFailures([])
     setIsBusy(true)
     try {
-      acceptImportedTracks(await importNativePaths(paths))
+      acceptImportReport(await importNativePaths(paths))
     } catch (reason) {
       setError(errorMessage(reason))
     } finally {
+      importPending.current = false
       setIsBusy(false)
     }
-  }, [acceptImportedTracks])
+  }, [acceptImportReport])
 
   useEffect(() => {
     let stopListening: (() => void) | undefined
@@ -225,6 +248,7 @@ export function useLibrary() {
   }
 
   function playAdjacent(direction: 1 | -1, fromEnded = false) {
+    if (!fromEnded && nativeAudio.adjacent(direction)) return
     const order = playbackOrder()
     if (order.length === 0) return
     const locatedIndex = order.indexOf(currentTrackId ?? '')
@@ -325,6 +349,9 @@ export function useLibrary() {
     }
 
     try {
+      // The service may hold a queued file even when it is not the current track.
+      // Await its acknowledgement before removing the private library copy.
+      await nativeAudio.releaseTrack(trackId)
       await persistDeleteTrack(trackId)
       if (track.fileUrl?.startsWith('blob:')) URL.revokeObjectURL(track.fileUrl)
       setTracks((current) => current.filter((item) => item.id !== trackId))
@@ -369,13 +396,17 @@ export function useLibrary() {
   }
 
   async function importFromPicker() {
+    if (importPending.current || isBusy) return
+    importPending.current = true
     clearMessages()
+    setImportFailures([])
     setIsBusy(true)
     try {
-      acceptImportedTracks(await chooseAndImportTracks())
+      acceptImportReport(await chooseAndImportTracks())
     } catch (reason) {
       setError(errorMessage(reason))
     } finally {
+      importPending.current = false
       setIsBusy(false)
     }
   }
@@ -655,10 +686,12 @@ export function useLibrary() {
     error,
     importBrowserFiles,
     importFromPicker,
+    importFailures,
     isBusy,
     isPlaying,
     isReady,
     mediaAnalysis,
+    nativeAudio,
     notice,
     onTrackEnded: handleTrackEnded,
     playNext: () => playAdjacent(1),

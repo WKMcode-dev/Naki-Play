@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import {
   Heart,
   ListMusic,
@@ -16,9 +16,12 @@ import {
 } from 'lucide-react'
 import type { MediaTrack, RepeatMode } from '../../../types/library'
 import { useVideoWindow } from '../../../hooks/useVideoWindow'
+import type { useAndroidAudio } from '../../../hooks/useAndroidAudio'
+import { playbackErrorMessage } from '../../../services/playbackError'
 import './PlayerBar.css'
 
 interface PlayerBarProps {
+  nativeAudio?: ReturnType<typeof useAndroidAudio>
   isPlaying: boolean
   repeatMode: RepeatMode
   shuffleEnabled: boolean
@@ -42,6 +45,9 @@ function formatTime(value: number) {
   return `${minutes}:${seconds}`
 }
 
+const noSnapshot = () => undefined
+const noSubscription = () => () => {}
+
 function isVideoTrack(track?: MediaTrack) {
   return [track?.fileName, track?.filePath, track?.fileUrl]
     .filter((source): source is string => Boolean(source))
@@ -49,6 +55,7 @@ function isVideoTrack(track?: MediaTrack) {
 }
 
 export function PlayerBar({
+  nativeAudio,
   isPlaying,
   repeatMode,
   shuffleEnabled,
@@ -68,10 +75,17 @@ export function PlayerBar({
   const videoStageRef = useRef<HTMLDivElement>(null)
   const lastAudibleVolume = useRef(volume > 0 ? volume : 0.82)
   const playbackErrorHandler = useRef(onPlaybackError)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [htmlTime, setCurrentTime] = useState(0)
+  const [htmlDuration, setDuration] = useState(0)
   const [mediaError, setMediaError] = useState<string>()
-  const showsVideo = isVideoTrack(track)
+  const usesNative = nativeAudio?.enabled && nativeAudio.active
+  // Android inspects the actual streams: an audio-only .webm is not a video.
+  const showsVideo = nativeAudio?.enabled ? nativeAudio.hasVideo : isVideoTrack(track)
+  const htmlEnabled = !nativeAudio?.enabled || (showsVideo && !nativeAudio.waiting)
+  const nativeSnapshot = useSyncExternalStore(nativeAudio?.subscribe ?? noSubscription, nativeAudio?.getSnapshot ?? noSnapshot, noSnapshot)
+  const currentTime = usesNative ? (nativeSnapshot && nativeSnapshot.trackId === track?.id ? nativeSnapshot.positionMs / 1000 : 0) : htmlTime
+  const duration = usesNative ? (nativeSnapshot && nativeSnapshot.trackId === track?.id ? nativeSnapshot.durationMs / 1000 : 0) : htmlDuration
+  const displayedError = nativeAudio?.enabled ? nativeAudio.error || (showsVideo ? mediaError : undefined) : mediaError
   const videoWindow = useVideoWindow(videoStageRef, showsVideo)
 
   useEffect(() => {
@@ -80,7 +94,7 @@ export function PlayerBar({
 
   useEffect(() => {
     const media = mediaRef.current
-    if (!media || !track?.fileUrl) return
+    if (!htmlEnabled || !media || !track?.fileUrl) return
 
     media.src = track.fileUrl
     media.load()
@@ -93,24 +107,26 @@ export function PlayerBar({
       media.removeAttribute('src')
       media.load()
     }
-  }, [showsVideo, track?.fileUrl])
+  }, [htmlEnabled, showsVideo, track?.fileUrl])
 
   useEffect(() => {
     const media = mediaRef.current
-    if (!media || !track?.fileUrl) return
     if (volume > 0) lastAudibleVolume.current = volume
+    if (!htmlEnabled || !media || !track?.fileUrl) return
     media.volume = volume
     media.muted = volume === 0
-  }, [showsVideo, track?.fileUrl, volume])
+  }, [htmlEnabled, showsVideo, track?.fileUrl, volume])
 
   useEffect(() => {
     const media = mediaRef.current
-    if (!media || !track?.fileUrl) return
+    if (!htmlEnabled || !media || !track?.fileUrl) return
     let cancelled = false
     if (isPlaying) {
-      void media.play().catch(() => {
+      void media.play().catch((error: unknown) => {
         if (cancelled || mediaRef.current !== media) return
-        setMediaError('Não foi possível reproduzir este formato de mídia.')
+        const message = playbackErrorMessage(media.error?.code, error instanceof Error ? error.name : undefined)
+        if (!message) return
+        setMediaError(message)
         playbackErrorHandler.current()
       })
     } else {
@@ -119,10 +135,26 @@ export function PlayerBar({
     return () => {
       cancelled = true
     }
-  }, [isPlaying, showsVideo, track?.fileUrl])
+  }, [htmlEnabled, isPlaying, showsVideo, track?.fileUrl])
+
+  function seek(value: number) {
+    if (usesNative) nativeAudio.seek(value)
+    else {
+      setCurrentTime(value)
+      if (mediaRef.current && duration) mediaRef.current.currentTime = value
+    }
+  }
 
   function toggleMuted() {
     onVolumeChange(volume > 0 ? 0 : lastAudibleVolume.current)
+  }
+
+  function handleMediaError(media: HTMLMediaElement) {
+    if (!media.getAttribute('src')) return
+    const message = playbackErrorMessage(media.error?.code)
+    if (!message) return
+    setMediaError(message)
+    playbackErrorHandler.current()
   }
 
   async function toggleFullscreen() {
@@ -139,7 +171,7 @@ export function PlayerBar({
 
   return (
     <>
-      {showsVideo && (
+      {showsVideo && htmlEnabled && (
         <div
           className={`player-video-stage${videoWindow.position ? ' player-video-stage--positioned' : ''}${videoWindow.isDragging ? ' player-video-stage--dragging' : ''}`}
           ref={videoStageRef}
@@ -155,7 +187,7 @@ export function PlayerBar({
             preload="metadata"
             onCanPlay={() => setMediaError(undefined)}
             onEnded={onTrackEnded}
-            onError={() => setMediaError('Este vídeo usa um formato que o dispositivo não conseguiu abrir.')}
+            onError={(event) => handleMediaError(event.currentTarget)}
             onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
             onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
           />
@@ -224,19 +256,19 @@ export function PlayerBar({
         </div>
       )}
       <footer className="player-bar">
-      {!showsVideo && (
+      {!showsVideo && htmlEnabled && (
         <audio
           ref={(element) => { mediaRef.current = element }}
           loop={repeatMode === 'one'}
           preload="metadata"
           onCanPlay={() => setMediaError(undefined)}
           onEnded={onTrackEnded}
-          onError={() => setMediaError('Não foi possível reproduzir este arquivo de áudio.')}
+          onError={(event) => handleMediaError(event.currentTarget)}
           onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
           onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
         />
       )}
-      {mediaError && !showsVideo && <span className="player-media-error" role="alert">{mediaError}</span>}
+      {displayedError && <span className="player-media-error" role="alert">{displayedError}</span>}
       <div className="player-track">
         <span className="player-track__cover" style={{ background: track.cover }}>{track.title.charAt(0)}</span>
         <span className="player-track__copy">
@@ -293,8 +325,7 @@ export function PlayerBar({
               value={duration ? currentTime : progress}
               onChange={(event) => {
                 const value = Number(event.target.value)
-                setCurrentTime(value)
-                if (mediaRef.current && duration) mediaRef.current.currentTime = value
+                seek(value)
               }}
               style={{ '--progress': `${progress}%` } as CSSProperties}
             />

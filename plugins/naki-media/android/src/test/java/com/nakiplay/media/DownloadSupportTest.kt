@@ -4,6 +4,31 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DownloadSupportTest {
+    @Test fun distinguishesExtractorCompatibilityFromRestrictedContent() {
+        assertTrue(DownloadSupport.failure("No supported JavaScript runtime could be found", null, false).contains("JavaScript"))
+        assertTrue(DownloadSupport.failure("n challenge solving failed", null, false).contains("JavaScript"))
+        assertTrue(DownloadSupport.failure("Requested format is not available", null, false).contains("outra qualidade"))
+        assertTrue(DownloadSupport.failure("Sign in to confirm your age", null, false).contains("exige login"))
+        assertTrue(DownloadSupport.failure("Cannot run program /data/user/0/test", null, false).contains("iniciar o motor"))
+        // Concrete transport failures must remain the primary diagnosis.
+        assertTrue(DownloadSupport.failure("challenge solving failed\nHTTP Error 403", null, false).contains("HTTP 403"))
+        assertTrue(DownloadSupport.failure("failed to initialize\nNo space left on device", null, false).contains("sem espaço"))
+    }
+    @Test fun recognizesDnsAcrossAndroidErrorVariants() {
+        for (error in listOf("[Errno 7] No address associated with hostname", "Unable to resolve host youtube.com", "java.net.UnknownHostException", "Temporary failure in name resolution", "Name or service not known")) {
+            val result = DownloadSupport.failure(error, "test", false)
+            assertTrue(result.contains("DNS"))
+            assertTrue(result.contains("Wi-Fi"))
+        }
+        assertTrue(DownloadSupport.failure("NAKI_OFFLINE", null, false).contains("conexão ativa"))
+    }
+
+    @Test fun repeatedDiagnosticsStayBounded() {
+        val error = (1..100).joinToString("\n") { "WARNING No address associated with hostname https://private.test/?secret=123" }
+        val result = DownloadSupport.failure(error, "test", false)
+        assertFalse(result.contains("secret"))
+        assertTrue(result.length < 1300)
+    }
     private val day = 24L * 60 * 60 * 1000
 
     @Test fun checksAgainWithoutRestartingAndBacksOffAfterFailure() {

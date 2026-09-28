@@ -113,31 +113,38 @@ function nameFromPath(path: string) {
   }
 }
 
-export async function chooseAndImportTracks(): Promise<MediaTrack[]> {
-  if (!runningInTauri()) return []
+export interface ImportReport {
+  tracks: MediaTrack[]
+  failures: { name: string; error: string }[]
+}
+
+export async function chooseAndImportTracks(): Promise<ImportReport> {
+  if (!runningInTauri()) return { tracks: [], failures: [] }
   const selected = await open({
     multiple: true,
     directory: false,
-    title: 'Escolha suas músicas',
-    filters: [{
+    title: 'Escolha seus arquivos de áudio ou vídeo',
+    // Android providers may report application/octet-stream or a wrong extension.
+    // Validate the actual copied bytes instead of hiding those files in the picker.
+    filters: runningOnAndroid() ? undefined : [{
       name: 'Áudio e vídeo',
-      extensions: ['mp3', 'wav', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'mp4', 'webm', 'mov'],
+      extensions: ['mp3', 'mpeg', 'wav', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'mp4', 'webm', 'mov'],
     }],
   })
   const paths = selected === null ? [] : Array.isArray(selected) ? selected : [selected]
-  if (paths.length === 0) return []
-  const tracks = await invoke<MediaTrack[]>('import_tracks', {
+  if (paths.length === 0) return { tracks: [], failures: [] }
+  const report = await invoke<ImportReport>('import_tracks', {
     items: paths.map((path) => ({ path, name: nameFromPath(path) })),
   })
-  return tracks.map(hydrateTrack)
+  return { ...report, tracks: report.tracks.map(hydrateTrack) }
 }
 
-export async function importNativePaths(paths: string[]): Promise<MediaTrack[]> {
-  if (!runningInTauri() || paths.length === 0) return []
-  const tracks = await invoke<MediaTrack[]>('import_tracks', {
+export async function importNativePaths(paths: string[]): Promise<ImportReport> {
+  if (!runningInTauri() || paths.length === 0) return { tracks: [], failures: [] }
+  const report = await invoke<ImportReport>('import_tracks', {
     items: paths.map((path) => ({ path, name: nameFromPath(path) })),
   })
-  return tracks.map(hydrateTrack)
+  return { ...report, tracks: report.tracks.map(hydrateTrack) }
 }
 
 export async function listenForNativeDrops(

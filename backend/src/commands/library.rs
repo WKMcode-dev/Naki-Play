@@ -1,8 +1,9 @@
+use super::media_file::{detect_extension, SUPPORTED_EXTENSIONS};
 use crate::database::{
     app_paths, insert_track, load_snapshot, open_database, AppSnapshot, PlaylistRecord, TrackRecord,
 };
 use rusqlite::{Connection, OptionalExtension};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     ffi::{OsStr, OsString},
@@ -12,12 +13,12 @@ use std::{
     thread,
     time::Duration,
 };
+#[cfg(not(target_os = "android"))]
 use tauri_plugin_fs::{FilePath, FsExt, OpenOptions};
+#[cfg(target_os = "android")]
+use tauri_plugin_naki_media::{ImportFileRequest, NakiMediaExt};
 use uuid::Uuid;
 
-const SUPPORTED_EXTENSIONS: &[&str] = &[
-    "mp3", "wav", "m4a", "aac", "flac", "ogg", "opus", "mp4", "webm", "mov",
-];
 const MAX_DOWNLOAD_BYTES: u64 = 220 * 1024 * 1024;
 
 #[derive(Deserialize)]
@@ -25,6 +26,26 @@ const MAX_DOWNLOAD_BYTES: u64 = 220 * 1024 * 1024;
 pub struct ImportRequest {
     path: String,
     name: String,
+}
+
+#[derive(Serialize)]
+pub struct ImportFailure {
+    name: String,
+    error: String,
+}
+
+#[derive(Serialize, Default)]
+pub struct ImportReport {
+    tracks: Vec<TrackRecord>,
+    failures: Vec<ImportFailure>,
+}
+
+/// Deletes only the newly-created temporary file on every exit path.
+struct PendingImport(PathBuf);
+impl Drop for PendingImport {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
 }
 
 #[tauri::command]
@@ -76,44 +97,6 @@ fn title_from_name(value: &str) -> String {
     }
 }
 
-fn extension_from_name(value: &str) -> Option<String> {
-    Path::new(value)
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .map(str::to_lowercase)
-        .filter(|extension| SUPPORTED_EXTENSIONS.contains(&extension.as_str()))
-}
-
-fn extension_from_mime(mime: &str) -> Option<&'static str> {
-    match mime {
-        "audio/mpeg" | "audio/mp3" => Some("mp3"),
-        "audio/wav" | "audio/x-wav" | "audio/vnd.wave" => Some("wav"),
-        "audio/aac" => Some("aac"),
-        "audio/flac" | "audio/x-flac" => Some("flac"),
-        "audio/ogg" | "application/ogg" => Some("ogg"),
-        "audio/opus" => Some("opus"),
-        "audio/mp4" => Some("m4a"),
-        "video/mp4" => Some("mp4"),
-        "video/webm" | "audio/webm" => Some("webm"),
-        "video/quicktime" => Some("mov"),
-        _ => None,
-    }
-}
-
-fn detect_extension(path: &Path, suggested_name: &str) -> Result<String, String> {
-    if let Some(extension) = extension_from_name(suggested_name) {
-        return Ok(extension);
-    }
-
-    infer::get_from_path(path)
-        .map_err(|error| format!("não foi possível identificar o formato: {error}"))?
-        .and_then(|kind| extension_from_mime(kind.mime_type()))
-        .map(str::to_string)
-        .ok_or_else(|| {
-            "o arquivo escolhido não possui um formato de áudio ou vídeo compatível".to_string()
-        })
-}
-
 fn cover_seed(id: &Uuid) -> i64 {
     (id.as_u128() % 8) as i64
 }
@@ -125,26 +108,51 @@ fn copy_import_to_library(
     let paths = app_paths(app)?;
     let id = Uuid::new_v4();
     let temporary_path = paths.media.join(format!("{id}.importing"));
-    let file_path: FilePath = request
-        .path
-        .parse()
-        .map_err(|_| "o endereço do arquivo selecionado é inválido".to_string())?;
-    let mut open_options = OpenOptions::new();
-    open_options.read(true);
-    let mut source = app
-        .fs()
-        .open(file_path, open_options)
-        .map_err(|error| format!("não foi possível abrir o arquivo selecionado: {error}"))?;
-    let mut destination = fs::File::create(&temporary_path)
-        .map_err(|error| format!("não foi possível criar a cópia local: {error}"))?;
+    let _pending = PendingImport(temporary_path.clone());
+    #[cfg(not(target_os = "android"))]
+    let (source_name, duration_seconds) = (request.name.clone(), 0);
+    #[cfg(target_os = "android")]
+    let (source_name, duration_seconds) = {
+        let copied = app
+            .naki_media()
+            .import_file(ImportFileRequest {
+                source: request.path.clone(),
+                destination: temporary_path.to_string_lossy().into_owned(),
+            })
+            .map_err(|error| error.to_string())?;
+        let mut source_name = if copied.name.trim().is_empty() {
+            request.name.clone()
+        } else {
+            copied.name
+        };
+        if copied.converted {
+            source_name = format!("{}.m4a", title_from_name(&source_name));
+        }
+        (source_name, copied.duration_seconds.max(0))
+    };
+    #[cfg(not(target_os = "android"))]
+    {
+        let file_path: FilePath = request
+            .path
+            .parse()
+            .map_err(|_| "o endereço do arquivo selecionado é inválido".to_string())?;
+        let mut open_options = OpenOptions::new();
+        open_options.read(true);
+        let mut source = app
+            .fs()
+            .open(file_path, open_options)
+            .map_err(|error| format!("não foi possível abrir o arquivo selecionado: {error}"))?;
+        let mut destination = fs::File::create(&temporary_path)
+            .map_err(|error| format!("não foi possível criar a cópia local: {error}"))?;
 
-    io::copy(&mut source, &mut destination)
-        .map_err(|error| format!("não foi possível copiar a música: {error}"))?;
-    destination
-        .flush()
-        .map_err(|error| format!("não foi possível finalizar a cópia: {error}"))?;
+        io::copy(&mut source, &mut destination)
+            .map_err(|error| format!("não foi possível copiar a música: {error}"))?;
+        destination
+            .flush()
+            .map_err(|error| format!("não foi possível finalizar a cópia: {error}"))?;
+    }
 
-    let extension = match detect_extension(&temporary_path, &request.name) {
+    let extension = match detect_extension(&temporary_path, &source_name) {
         Ok(extension) => extension,
         Err(error) => {
             let _ = fs::remove_file(&temporary_path);
@@ -154,10 +162,11 @@ fn copy_import_to_library(
     let destination_path = paths.media.join(format!("{id}.{extension}"));
     fs::rename(&temporary_path, &destination_path)
         .map_err(|error| format!("não foi possível finalizar o arquivo local: {error}"))?;
-    let file_name = if request.name.trim().is_empty() {
+    let file_name = if source_name.trim().is_empty() {
         format!("Música importada.{extension}")
     } else {
-        clean_file_name(&request.name)
+        // The stored display extension must describe the bytes, not the provider's claim.
+        format!("{}.{extension}", title_from_name(&source_name))
     };
 
     Ok(TrackRecord {
@@ -165,7 +174,7 @@ fn copy_import_to_library(
         title: title_from_name(&file_name),
         artist: "Arquivo pessoal".to_string(),
         album: "Adicionadas por você".to_string(),
-        duration_seconds: 0,
+        duration_seconds,
         file_path: destination_path.to_string_lossy().into_owned(),
         file_name,
         source: "local".to_string(),
@@ -177,25 +186,39 @@ fn copy_import_to_library(
 }
 
 #[tauri::command]
-pub fn import_tracks(
+pub async fn import_tracks(
     app: tauri::AppHandle,
     items: Vec<ImportRequest>,
-) -> Result<Vec<TrackRecord>, String> {
+) -> Result<ImportReport, String> {
+    tauri::async_runtime::spawn_blocking(move || import_batch(&app, items))
+        .await
+        .map_err(|error| format!("a importação foi interrompida: {error}"))?
+}
+
+fn import_batch(app: &tauri::AppHandle, items: Vec<ImportRequest>) -> Result<ImportReport, String> {
     if items.is_empty() {
-        return Ok(Vec::new());
+        return Ok(ImportReport::default());
     }
 
-    let connection = open_database(&app)?;
-    let mut imported = Vec::new();
+    let connection = open_database(app)?;
+    let mut report = ImportReport::default();
     for item in &items {
-        let track = copy_import_to_library(&app, item)?;
-        if let Err(error) = insert_track(&connection, &track) {
-            let _ = fs::remove_file(&track.file_path);
-            return Err(error);
+        let result = copy_import_to_library(app, item).and_then(|track| {
+            if let Err(error) = insert_track(&connection, &track) {
+                let _ = fs::remove_file(&track.file_path);
+                return Err(error);
+            }
+            Ok(track)
+        });
+        match result {
+            Ok(track) => report.tracks.push(track),
+            Err(error) => report.failures.push(ImportFailure {
+                name: clean_file_name(&item.name),
+                error,
+            }),
         }
-        imported.push(track);
     }
-    Ok(imported)
+    Ok(report)
 }
 
 fn blocked_streaming_host(host: &str) -> bool {
@@ -216,7 +239,8 @@ pub async fn download_track_from_url(
     app: tauri::AppHandle,
     url: String,
 ) -> Result<TrackRecord, String> {
-    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| {
+    let normalized = super::media_input::normalize_url(&url)?;
+    let parsed = reqwest::Url::parse(&normalized).map_err(|_| {
         "informe um link direto válido começando com http:// ou https://".to_string()
     })?;
     if !matches!(parsed.scheme(), "http" | "https") {
@@ -225,7 +249,7 @@ pub async fn download_track_from_url(
     let host = parsed.host_str().unwrap_or_default();
     if blocked_streaming_host(host) {
         return Err(
-            "links do YouTube e Spotify não podem ser baixados; use um arquivo próprio ou uma URL direta autorizada"
+            "esse link é de uma página, não de um arquivo direto; para YouTube use Analisar link"
                 .to_string(),
         );
     }
@@ -235,7 +259,7 @@ pub async fn download_track_from_url(
         .timeout(std::time::Duration::from_secs(90))
         .build()
         .map_err(|error| format!("não foi possível preparar o download: {error}"))?;
-    let response = client
+    let mut response = client
         .get(parsed.clone())
         .send()
         .await
@@ -252,48 +276,36 @@ pub async fn download_track_from_url(
     {
         return Err("o arquivo ultrapassa o limite de 220 MB".to_string());
     }
-    let content_type = response
-        .headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(';').next())
-        .map(str::to_string);
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|error| format!("o download foi interrompido: {error}"))?;
-    if bytes.len() as u64 > MAX_DOWNLOAD_BYTES {
-        return Err("o arquivo ultrapassa o limite de 220 MB".to_string());
-    }
-
     let suggested_name = parsed
         .path_segments()
         .and_then(|mut segments| segments.next_back())
         .filter(|segment| !segment.is_empty())
         .unwrap_or("música-baixada");
-    let extension = extension_from_name(suggested_name)
-        .or_else(|| {
-            content_type
-                .as_deref()
-                .and_then(extension_from_mime)
-                .map(str::to_string)
-        })
-        .or_else(|| {
-            infer::get(&bytes)
-                .and_then(|kind| extension_from_mime(kind.mime_type()).map(str::to_string))
-        })
-        .ok_or_else(|| "o link não aponta para um áudio ou vídeo compatível".to_string())?;
-
     let id = Uuid::new_v4();
     let paths = app_paths(&app)?;
+    let temporary_path = paths.media.join(format!("{id}.importing"));
+    let _pending = PendingImport(temporary_path.clone());
+    let mut file = fs::File::create(&temporary_path).map_err(|e| e.to_string())?;
+    let mut size = 0u64;
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| format!("o download foi interrompido: {error}"))?
+    {
+        size += chunk.len() as u64;
+        if size > MAX_DOWNLOAD_BYTES {
+            return Err("o arquivo ultrapassa o limite de 220 MB".into());
+        }
+        file.write_all(&chunk)
+            .map_err(|error| format!("não foi possível salvar o download: {error}"))?;
+    }
+    file.flush().map_err(|e| e.to_string())?;
+    drop(file);
+    let extension = detect_extension(&temporary_path, suggested_name)?;
     let destination_path = paths.media.join(format!("{id}.{extension}"));
-    fs::write(&destination_path, &bytes)
+    fs::rename(&temporary_path, &destination_path)
         .map_err(|error| format!("não foi possível salvar o download: {error}"))?;
-    let display_name = if extension_from_name(suggested_name).is_some() {
-        clean_file_name(suggested_name)
-    } else {
-        format!("{}.{extension}", clean_file_name(suggested_name))
-    };
+    let display_name = format!("{}.{extension}", title_from_name(suggested_name));
     let track = TrackRecord {
         id: id.to_string(),
         title: title_from_name(&display_name),
