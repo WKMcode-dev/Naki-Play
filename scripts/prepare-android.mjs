@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { prepareAndroidEngine } from './prepare-android-engine.mjs'
 
 const buildFile = resolve('backend/gen/android/app/build.gradle.kts')
 const manifestFile = resolve('backend/gen/android/app/src/main/AndroidManifest.xml')
@@ -9,6 +10,8 @@ if (![buildFile, manifestFile, activityFile].every(existsSync)) {
   console.error('Projeto Android ainda não foi criado. Execute pnpm android:init primeiro.')
   process.exit(1)
 }
+
+await prepareAndroidEngine()
 
 const buildSource = readFileSync(buildFile, 'utf8')
 if (!buildSource.includes('jniLibs.useLegacyPackaging = true')) {

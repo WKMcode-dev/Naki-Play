@@ -84,6 +84,7 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
     private val worker = Executors.newSingleThreadExecutor()
     private var lastUpdateAttempt = 0L
     private var updateFailed = false
+    private var extractorVersion: String? = null
 
     @Volatile
     private var initialized = false
@@ -108,12 +109,20 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
     @Synchronized
     private fun ensureInitialized() {
         val context = activity.applicationContext
+        val preferences = context.getSharedPreferences("naki-media", Activity.MODE_PRIVATE)
         if (!initialized) {
             YoutubeDL.getInstance().init(context)
             FFmpeg.getInstance().init(context)
+            val installed = runCatching { readExtractorVersion() }.getOrNull()
+            val installedBundle = BundledExtractor.installIfOlder(context, installed)
+            extractorVersion = readExtractorVersion()
+            if (installedBundle != null) {
+                check(extractorVersion == installedBundle) { "Não foi possível ativar o extrator incluído no aplicativo" }
+                // The freshly verified engine is ready; do not block first use on GitHub.
+                preferences.edit().putLong("yt-dlp-daily-check", System.currentTimeMillis()).apply()
+            }
             initialized = true
         }
-        val preferences = context.getSharedPreferences("naki-media", Activity.MODE_PRIVATE)
         // A new checkpoint also checks once when migrating from the old startup-only policy.
         val lastUpdate = preferences.getLong("yt-dlp-daily-check", 0)
         val now = System.currentTimeMillis()
@@ -123,6 +132,7 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
                 YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel._STABLE)
                     ?: throw IllegalStateException("A atualização não retornou um resultado")
                 preferences.edit().putLong("yt-dlp-daily-check", System.currentTimeMillis()).apply()
+                extractorVersion = readExtractorVersion()
                 updateFailed = false
             } catch (_: Exception) {
                 updateFailed = true
@@ -130,10 +140,14 @@ class NakiMediaPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    private fun readExtractorVersion(): String = YoutubeDL.getInstance()
+        .execute(YoutubeDLRequest(emptyList<String>()).addOption("--version"))
+        .out.trim().also { check(it.isNotBlank()) { "O extrator não informou sua versão" } }
+
     private fun failure(error: Exception): String = DownloadSupport.failure(
         generateSequence<Throwable>(error) { it.cause }.take(8)
             .map { it.message ?: it.javaClass.simpleName }.distinct().joinToString("\n"),
-        runCatching { YoutubeDL.getInstance().versionName(activity.applicationContext) }.getOrNull(),
+        extractorVersion,
         updateFailed,
     )
 

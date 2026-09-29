@@ -1,0 +1,47 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare tools
+        run: |
+          npm install --global pnpm@11.19.0
+          rustup target add aarch64-linux-android
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prepare Android project and bundled extractor
+        run: |
+          pnpm exec tauri android init --ci
+          pnpm android:prepare
+      - name: Build ARM64 APK
+        run: pnpm build:android:debug
+      - name: Run Kotlin tests
+        working-directory: backend/gen/android
+        run: ./gradlew :tauri-plugin-naki-media:testDebugUnitTest --no-daemon --max-workers=2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-arm64-debug
+          path: |
+            backend/gen/android/app/build/outputs/apk/arm64/debug/*.apk
+            plugins/naki-media/android/build/test-results/testDebugUnitTest/TEST-*.xml
+          if-no-files-found: error

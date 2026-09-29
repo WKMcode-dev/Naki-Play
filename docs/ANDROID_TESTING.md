@@ -10,6 +10,8 @@
 
 O primeiro uso do conversor pode levar mais tempo porque Python e FFmpeg são preparados e o app tenta verificar uma atualização estável do extrator.
 
+A partir da 0.5.4, `android:prepare` também prepara o extrator fixado em `plugins/naki-media/android/src/main/res/raw/naki_engine.json`, verificando seu SHA-256. O APK instala essa cópia antes de tentar a atualização online, quando a versão existente é antiga ou está ausente; uma versão mais nova é preservada. Os detalhes de suporte exibem a versão executada, não apenas a última versão registrada pelo atualizador.
+
 ## Teste essencial
 
 Use um vídeo curto que seja seu, de domínio público ou autorizado.

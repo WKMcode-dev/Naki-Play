@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## 0.5.4 — Extrator atualizado incluído no Android (teste)
+
+- Inclui yt-dlp 2026.08.19 no APK, com SHA-256 verificado na preparação e instalação, em vez de depender exclusivamente da atualização online do extrator 2025.11.12 da biblioteca.
+- Ao iniciar o motor, substitui a cópia antiga pelo extrator incluído antes das requisições de mídia; preserva versões iguais ou mais novas. A gravação usa AtomicFile para manter a versão anterior se a cópia falhar.
+- O diagnóstico informa a versão realmente executada, inclusive quando a verificação online falha.
+- Reprodução controlada: extrator antigo analisou o vídeo de referência, mas o download de áudio falhou com HTTP 403; o extrator atualizado concluiu o mesmo teste.
+- As quatro qualidades MP3 e as oito resoluções MP4 completaram downloads integrais no Windows com os seletores Android. Isso não substitui validação em aparelho físico; o emulador local não iniciou.
+
 ## 0.5.3 — Player de áudio nativo Android (candidata de teste)
 
 - Corrige a saída MP4 no Android quando a origem fornece um fluxo combinado WebM; o arquivo passa pela conversão necessária antes de entrar na biblioteca.
