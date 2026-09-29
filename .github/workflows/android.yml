@@ -47,6 +47,6 @@ jobs:
         with:
           name: android-arm64-debug
           path: |
-            backend/gen/android/app/build/outputs/apk/arm64/debug/*.apk
+            backend/gen/android/app/build/outputs/apk/*/debug/*.apk
             plugins/naki-media/android/build/test-results/testDebugUnitTest/TEST-*.xml
           if-no-files-found: error
