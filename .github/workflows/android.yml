@@ -21,6 +21,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: android-actions/setup-android@v3
       - name: Prepare tools
         run: |
           npm install --global pnpm@11.19.0
