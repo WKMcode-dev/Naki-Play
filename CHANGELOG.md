@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes do Naki Play serão registradas neste arquivo.
 
+## 0.5.5 — Área de vídeos
+
+- Seção Vídeos com biblioteca própria, cartões e área de exibição em 16:9.
+- Controles de pausa, posição, volume e tela cheia; reprodução preservada ao alternar entre a área de vídeos e o player flutuante.
+- Importar um vídeo abre diretamente a nova seção; busca e navegação adaptadas ao desktop e ao celular.
+- Instaladores Windows x64 e Android ARM64 gerados e verificados, com a mesma assinatura Android da versão 0.5.4.
+- Funcionamento da versão confirmado pelo responsável pelo projeto antes da publicação estável.
+
 ## 0.5.4 — Extrator atualizado incluído no Android (teste)
 
 - Inclui yt-dlp 2026.08.19 no APK, com SHA-256 verificado na preparação e instalação, em vez de depender exclusivamente da atualização online do extrator 2025.11.12 da biblioteca.

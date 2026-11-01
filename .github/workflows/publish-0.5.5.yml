@@ -1,0 +1,69 @@
+name: Publish tested 0.5.5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-0.5.5.yml'
+      - 'docs/releases/0.5.5/**'
+      - 'scripts/release/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: publish-tested-0.5.5
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TESTED_COMMIT: 3ab613f31908b468e8487cdb435519dad59f2eb4
+      TESTED_RUN: '41260895012'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check tested source
+        run: |
+          test "$(gh run view "$TESTED_RUN" --json conclusion --jq .conclusion)" = success
+          test "$(gh run view "$TESTED_RUN" --json headSha --jq .headSha)" = "$TESTED_COMMIT"
+          git diff --exit-code "$TESTED_COMMIT" HEAD -- frontend backend plugins package.json pnpm-lock.yaml
+      - name: Download original build artifacts
+        run: |
+          gh run download "$TESTED_RUN" --name windows-x64-installer --dir ci/windows
+          gh run download "$TESTED_RUN" --name android-arm64-package --dir ci/android
+      - name: Restore exact tested APK
+        run: |
+          python scripts/release/restore-tested-apk.py ci/android/test-installers/app-universal-debug.apk docs/releases/0.5.5/android-public-recipe.b64 release/Naki-Play-0.5.5-android-arm64.apk
+          cp ci/windows/*setup.exe release/Naki-Play-0.5.5-windows-x64-setup.exe
+          java -jar ci/android/test-installers/apksigner.jar verify --verbose --print-certs release/Naki-Play-0.5.5-android-arm64.apk | tee apk-certificate.txt
+          grep -F 6c8569a535c5f5b28b9db55883fcfd9f68b83a442eb3181684f5030424c2be09 apk-certificate.txt
+      - name: Verify checksums
+        working-directory: release
+        run: |
+          cp ../docs/releases/0.5.5/SHA256SUMS.txt .
+          sha256sum --check SHA256SUMS.txt
+      - name: Create draft and verify uploaded assets
+        run: |
+          gh release create v0.5.5 --draft --target "$GITHUB_SHA" --title 'Naki Play 0.5.5 — área de vídeos' --notes-file docs/releases/0.5.5/NOTAS.md release/*
+          gh release view v0.5.5 --json assets > release-assets.json
+          python - <<'PY'
+          import hashlib,json,pathlib
+          assets=json.load(open('release-assets.json'))['assets']
+          files=list(pathlib.Path('release').iterdir())
+          assert len(assets)==len(files)==3
+          for file in files:
+              asset=next(a for a in assets if a['name']==file.name)
+              assert asset['size']==file.stat().st_size
+              assert asset['digest']=='sha256:'+hashlib.sha256(file.read_bytes()).hexdigest()
+          print('Uploaded files match the tested installers.')
+          PY
+      - name: Publish stable release
+        run: gh release edit v0.5.5 --draft=false --prerelease=false --latest

@@ -17,4 +17,4 @@ Validação com Edge/Playwright e um vídeo WEBM gerado com canvas e MediaRecord
 - Busca sem resultados e biblioteca vazia.
 - Ausência de erros de execução do React.
 
-Compilação TypeScript/Vite e análise com oxlint também verificadas. Essas verificações cobrem a interface no navegador; a instalação e reprodução no aplicativo Android e no WebView2 do Windows ainda precisam ser conferidas em novos instaladores. A compatibilidade de codecs permanece a do player existente.
+Compilação TypeScript/Vite e análise com oxlint também verificadas. Os instaladores Windows x64 e Android ARM64 0.5.5 foram gerados no GitHub Actions, com 19 testes Kotlin aprovados. Após receber os pacotes, o responsável pelo projeto confirmou o funcionamento da versão e autorizou sua publicação. Essa confirmação não discrimina quais aparelhos ou sistemas foram usados no teste. A compatibilidade de codecs permanece a do player existente.

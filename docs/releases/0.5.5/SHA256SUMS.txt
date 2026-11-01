@@ -1,0 +1,2 @@
+2e8f8e1e2936988c15ccdc633b2d9558e29c07d03b88547eda1b4e0fd2ddcc27  Naki-Play-0.5.5-windows-x64-setup.exe
+72ff715083b62b6493b00e1934bfed8a4ae01e7f2310a9620c232b1f8f5c261a  Naki-Play-0.5.5-android-arm64.apk
