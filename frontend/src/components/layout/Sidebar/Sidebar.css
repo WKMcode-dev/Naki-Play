@@ -160,7 +160,11 @@
 
   .sidebar__nav {
     height: 100%;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(56px, 1fr);
+    overflow-x: auto;
+    scrollbar-width: none;
     gap: 2px;
   }
 

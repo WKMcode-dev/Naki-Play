@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Heart,
   ListMusic,
@@ -13,14 +14,19 @@ import {
   SkipForward,
   VolumeX,
   Volume2,
+  Video,
 } from 'lucide-react'
 import type { MediaTrack, RepeatMode } from '../../../types/library'
 import { useVideoWindow } from '../../../hooks/useVideoWindow'
 import type { useAndroidAudio } from '../../../hooks/useAndroidAudio'
 import { playbackErrorMessage } from '../../../services/playbackError'
+import { isVideoTrack } from '../../../services/mediaKind'
 import './PlayerBar.css'
 
 interface PlayerBarProps {
+  videoContainer: HTMLDivElement | null
+  videoDocked: boolean
+  onOpenVideo: () => void
   nativeAudio?: ReturnType<typeof useAndroidAudio>
   isPlaying: boolean
   repeatMode: RepeatMode
@@ -48,13 +54,10 @@ function formatTime(value: number) {
 const noSnapshot = () => undefined
 const noSubscription = () => () => {}
 
-function isVideoTrack(track?: MediaTrack) {
-  return [track?.fileName, track?.filePath, track?.fileUrl]
-    .filter((source): source is string => Boolean(source))
-    .some((source) => /\.(mp4|webm|mov)(?:$|[?#])/i.test(source))
-}
-
 export function PlayerBar({
+  videoContainer,
+  videoDocked,
+  onOpenVideo,
   nativeAudio,
   isPlaying,
   repeatMode,
@@ -107,7 +110,7 @@ export function PlayerBar({
       media.removeAttribute('src')
       media.load()
     }
-  }, [htmlEnabled, showsVideo, track?.fileUrl])
+  }, [htmlEnabled, showsVideo, track?.fileUrl, videoContainer])
 
   useEffect(() => {
     const media = mediaRef.current
@@ -115,7 +118,7 @@ export function PlayerBar({
     if (!htmlEnabled || !media || !track?.fileUrl) return
     media.volume = volume
     media.muted = volume === 0
-  }, [htmlEnabled, showsVideo, track?.fileUrl, volume])
+  }, [htmlEnabled, showsVideo, track?.fileUrl, videoContainer, volume])
 
   useEffect(() => {
     const media = mediaRef.current
@@ -135,7 +138,7 @@ export function PlayerBar({
     return () => {
       cancelled = true
     }
-  }, [htmlEnabled, isPlaying, showsVideo, track?.fileUrl])
+  }, [htmlEnabled, isPlaying, showsVideo, track?.fileUrl, videoContainer])
 
   function seek(value: number) {
     if (usesNative) nativeAudio.seek(value)
@@ -171,9 +174,9 @@ export function PlayerBar({
 
   return (
     <>
-      {showsVideo && htmlEnabled && (
+      {showsVideo && htmlEnabled && videoContainer && createPortal((
         <div
-          className={`player-video-stage${videoWindow.position ? ' player-video-stage--positioned' : ''}${videoWindow.isDragging ? ' player-video-stage--dragging' : ''}`}
+          className={`player-video-stage${videoDocked ? ' player-video-stage--docked' : ''}${videoWindow.position ? ' player-video-stage--positioned' : ''}${videoWindow.isDragging ? ' player-video-stage--dragging' : ''}`}
           ref={videoStageRef}
           style={videoWindow.position ? {
             '--video-x': `${videoWindow.position.x}px`,
@@ -192,12 +195,12 @@ export function PlayerBar({
             onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
           />
           <div className="player-video-stage__header">
-            {videoWindow.isFullscreen ? (
+            {videoWindow.isFullscreen || videoDocked ? (
               <>
                 <span className="player-video-stage__title">{track.title}</span>
-                <button className="player-video-stage__exit" type="button" onClick={() => void toggleFullscreen()}>
+                {videoWindow.isFullscreen && <button className="player-video-stage__exit" type="button" onClick={() => void toggleFullscreen()}>
                   <Minimize2 size={17} /> Sair da tela cheia
-                </button>
+                </button>}
               </>
             ) : (
               <button
@@ -225,6 +228,7 @@ export function PlayerBar({
             <button type="button" aria-label={isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'} onClick={onToggle}>
               {isPlaying ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}
             </button>
+            <span className="player-video-stage__time">{formatTime(currentTime)} / {formatTime(duration)}</span>
             <label>
               <span className="sr-only">Posição da reprodução do vídeo</span>
               <input
@@ -254,7 +258,7 @@ export function PlayerBar({
           </div>
           {mediaError && <span className="player-video-stage__error" role="alert">{mediaError}</span>}
         </div>
-      )}
+      ), videoContainer)}
       <footer className="player-bar">
       {!showsVideo && htmlEnabled && (
         <audio
@@ -335,6 +339,7 @@ export function PlayerBar({
       </div>
 
       <div className="player-extras">
+        {showsVideo && <button type="button" aria-label="Abrir área de vídeos" title="Assistir na área de vídeos" onClick={onOpenVideo}><Video size={18} /></button>}
         <button type="button" aria-label="Fila de reprodução"><ListMusic size={16} /></button>
         <button type="button" aria-label={volume > 0 ? 'Silenciar' : 'Restaurar volume'} aria-pressed={volume === 0} onClick={toggleMuted}>
           {volume > 0 ? <Volume2 size={16} /> : <VolumeX size={16} />}

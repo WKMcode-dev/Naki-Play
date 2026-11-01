@@ -170,6 +170,21 @@
   transform: translate(-50%, -50%);
 }
 
+.player-video-stage__time { flex-shrink: 0; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* Keep the same video element mounted when switching between the page and floating mode. */
+.video-screen--docked .player-video-stage--docked:not(:fullscreen) {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .player-media-error {
   position: absolute;
   bottom: calc(100% + 8px);

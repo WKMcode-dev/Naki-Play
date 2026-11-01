@@ -1,4 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
+import { Film } from 'lucide-react'
+import { VideoLibrary } from './components/library/VideoLibrary'
+import { isVideoTrack } from './services/mediaKind'
 import { WelcomeHero } from './components/home/WelcomeHero/WelcomeHero'
 import { ImportDropzone } from './components/library/ImportDropzone/ImportDropzone'
 import { MediaDownloadCard } from './components/library/MediaDownloadCard/MediaDownloadCard'
@@ -39,6 +42,7 @@ function App() {
   const library = useLibrary()
   const [query, setQuery] = useState('')
   const [editor, setEditor] = useState<CatalogDraft>()
+  const [videoContainer, setVideoContainer] = useState<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isNative = runningInTauri()
   const hasMediaEngine = mediaEngineAvailable()
@@ -59,7 +63,9 @@ function App() {
   const visibleTracks = useMemo(() => {
     let result: MediaTrack[] = library.tracks
 
-    if (library.activeView === 'liked') {
+    if (library.activeView === 'videos') {
+      result = result.filter(isVideoTrack)
+    } else if (library.activeView === 'liked') {
       result = result.filter((track) => track.isLiked)
     } else if (library.activeView === 'favorites') {
       result = result.filter((track) => track.isFavorite)
@@ -153,6 +159,17 @@ function App() {
         )}
 
         <main className="app__content">
+          {library.activeView === 'videos' && <div className="page-heading">
+            <div><h1>Vídeos</h1><p>Escolha um vídeo da sua biblioteca e assista aqui.</p></div>
+          </div>}
+          <div ref={setVideoContainer} className={library.activeView === 'videos' ? 'video-screen video-screen--docked' : 'video-screen'}>
+            {library.activeView === 'videos' && !(library.nativeAudio.enabled ? library.nativeAudio.hasVideo : isVideoTrack(library.currentTrack)) &&
+              <div className="video-screen__empty">
+                <Film size={36} aria-hidden="true" />
+                <strong>{library.nativeAudio.waiting && isVideoTrack(library.currentTrack) ? 'Preparando vídeo…' : 'Pronto para assistir'}</strong>
+                <p>Selecione um dos vídeos abaixo para abrir a imagem e os controles.</p>
+              </div>}
+          </div>
           {library.activeView === 'downloads' && library.importFailures.length > 0 && (
             <section className="media-download__error" role="alert" aria-label="Arquivos não importados">
               <strong>Alguns arquivos não foram importados</strong>
@@ -173,7 +190,12 @@ function App() {
               ))}
             </section>
           )}
-          {library.activeView === 'settings' ? (
+          {library.activeView === 'videos' ? (
+            <VideoLibrary tracks={visibleTracks} currentTrackId={library.currentTrack?.id} isPlaying={library.isPlaying}
+              searching={Boolean(normalizedQuery)} onImport={requestImport}
+              onDownload={() => { setQuery(''); library.setActiveView('downloads') }}
+              onPlay={(id) => library.playTrack(id, visibleTracks.map((track) => track.id))} />
+          ) : library.activeView === 'settings' ? (
             <SettingsPage
               isBusy={library.isBusy}
               playlistCount={library.playlists.length}
@@ -280,6 +302,9 @@ function App() {
         </main>
 
         <PlayerBar
+          videoContainer={videoContainer}
+          videoDocked={library.activeView === 'videos'}
+          onOpenVideo={() => { setQuery(''); library.setActiveView('videos') }}
           nativeAudio={library.nativeAudio}
           isPlaying={library.isPlaying}
           repeatMode={library.settings.repeatMode}

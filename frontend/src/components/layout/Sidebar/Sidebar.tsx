@@ -8,6 +8,7 @@ import {
   Plus,
   Settings,
   Sparkles,
+  Video,
 } from 'lucide-react'
 import type { LibraryView, Playlist } from '../../../types/library'
 import './Sidebar.css'
@@ -23,6 +24,7 @@ interface SidebarProps {
 const primaryItems = [
   { id: 'home' as const, label: 'Início', mobileLabel: 'Início', icon: Home },
   { id: 'library' as const, label: 'Biblioteca', mobileLabel: 'Músicas', icon: LibraryBig },
+  { id: 'videos' as const, label: 'Vídeos', mobileLabel: 'Vídeos', icon: Video },
   { id: 'liked' as const, label: 'Gostadas', mobileLabel: 'Gostadas', icon: Heart },
   { id: 'favorites' as const, label: 'Favoritas', mobileLabel: 'Favoritas', icon: Sparkles },
   { id: 'downloads' as const, label: 'Arquivos locais', mobileLabel: 'Arquivos', icon: Download },
