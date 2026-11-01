@@ -1,0 +1,83 @@
+name: Video test installers
+
+on:
+  push:
+    branches: [feat/video-library]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: |
+          npm install --global pnpm@11.19.0
+          pnpm install --frozen-lockfile
+      - name: Check frontend
+        run: pnpm lint
+      - name: Build Windows installer
+        run: pnpm build:desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-installer
+          path: backend/target/release/bundle/nsis/*setup.exe
+          if-no-files-found: error
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: '12266719'
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Prepare tools
+        run: |
+          npm install --global pnpm@11.19.0
+          rustup target add aarch64-linux-android
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+          echo "NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prepare Android project
+        run: |
+          pnpm exec tauri android init --ci
+          pnpm android:prepare
+      - name: Build ARM64 APK
+        run: pnpm build:android:debug
+      - name: Run Kotlin tests
+        working-directory: backend/gen/android
+        run: ./gradlew :tauri-plugin-naki-media:testDebugUnitTest --no-daemon --max-workers=2
+      - name: Collect APK and signing tool
+        run: |
+          mkdir -p test-installers
+          cp backend/gen/android/app/build/outputs/apk/*/debug/*.apk test-installers/
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" test-installers/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-arm64-package
+          path: |
+            test-installers/*
+            plugins/naki-media/android/build/test-results/testDebugUnitTest/TEST-*.xml
+          if-no-files-found: error

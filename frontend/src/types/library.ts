@@ -3,6 +3,7 @@ export type TrackSource = 'local' | 'direct' | 'youtube' | 'spotify'
 export type LibraryView =
   | 'home'
   | 'library'
+  | 'videos'
   | 'liked'
   | 'favorites'
   | 'downloads'

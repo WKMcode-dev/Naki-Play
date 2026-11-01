@@ -18,13 +18,13 @@ export function Header({ isBusy, query, userName, onImport, onQueryChange }: Hea
           aria-label="Buscar na biblioteca"
           type="search"
           value={query}
-          placeholder="Buscar uma música, artista ou playlist..."
+          placeholder="Buscar músicas, vídeos, artistas ou playlists..."
           onChange={(event) => onQueryChange(event.target.value)}
         />
       </label>
       <button className="import-button" type="button" disabled={isBusy} onClick={onImport}>
         <FolderPlus size={17} />
-        <span>{isBusy ? 'Aguarde…' : 'Adicionar música'}</span>
+        <span>{isBusy ? 'Aguarde…' : 'Adicionar arquivos'}</span>
       </button>
       <div className="profile-dot" aria-label={`Perfil local de ${userName}`} title={userName}>
         {userName.trim().charAt(0).toLocaleUpperCase('pt-BR') || 'N'}

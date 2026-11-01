@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAndroidAudio } from './useAndroidAudio'
+import { isVideoTrack } from '../services/mediaKind'
 import {
   analyzeExternalMedia,
   bootstrapLibrary,
@@ -178,8 +179,8 @@ export function useLibrary() {
     setCurrentTrackId(imported[0].id)
     setPlaybackQueue((current) => uniqueIds([...imported.map((track) => track.id), ...current]))
     setIsPlaying(true)
-    setActiveView('downloads')
-    setNotice(`${imported.length} ${imported.length === 1 ? 'música adicionada' : 'músicas adicionadas'} à biblioteca`)
+    setActiveView(isVideoTrack(imported[0]) ? 'videos' : 'downloads')
+    setNotice(`${imported.length} ${imported.length === 1 ? 'arquivo adicionado' : 'arquivos adicionados'} à biblioteca`)
   }, [])
 
   const acceptImportReport = useCallback((report: ImportReport) => {
